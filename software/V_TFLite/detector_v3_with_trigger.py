@@ -19,6 +19,7 @@ from power_trigger import PowerTrigger, run_tdoa_analysis, get_nearest_channel
 
 serverName = "127.0.0.1"
 serverPort = 12001
+DETECTION_THRESHOLD = 0.5
 
 # Funzione per ottenere il nome del file di log
 def get_log_file_path():
@@ -128,11 +129,11 @@ def extract_blocks(channel, br, nsec=0.2, window_size=2048):
         tuple: (blk1, blk2, blk3)
     """
     i = 0
-    blk1 = channel[int(i * br * nsec):int((i + 1) * br * nsec) + int(window_size / 2)]
+    blk1 = channel[int(i * br * nsec):int((i * br * nsec) + br * nsec * 3)]
     i += 1
-    blk2 = channel[int(i * br * nsec) - int(window_size / 2):int((i + 1) * br * nsec) + int(window_size / 2)]
+    blk2 = channel[int(i * br * nsec):int((i * br * nsec) + br * nsec * 3)]
     i += 1
-    blk3 = channel[int(i * br * nsec) - int(window_size / 2):int((i + 1) * br * nsec)]
+    blk3 = channel[int(i * br * nsec):int((i * br * nsec) + br * nsec * 3)]
     
     return blk1, blk2, blk3
 
@@ -150,8 +151,8 @@ async def perform_detection(channel, br, results, block_indices):
     blk1, blk2, blk3 = extract_blocks(channel, br)
     blocks = [blk1, blk2, blk3]
     
-    for idx in block_indices:
-        await send_wavefile(idx, blocks[idx], br, results)
+    tasks = [send_wavefile(idx, blocks[idx], br, results) for idx in block_indices]
+    await asyncio.gather(*tasks)
 
 
 def activate_relay(direction):
@@ -218,7 +219,7 @@ async def main_loop_with_trigger():
                 # Nessun trigger attivato, salta la detection
                 with open(log_file_path, "a") as log_file:
                     log_file.write("No triggers activated, skipping detection\n")
-                time.sleep(1)
+                await asyncio.sleep(1)
                 continue
             
             results = [None] * 3
@@ -249,9 +250,22 @@ async def main_loop_with_trigger():
                         await perform_detection(left_channel, br, results, [0, 1, 2])
                     else:
                         await perform_detection(right_channel, br, results, [0, 1, 2])
-                    
-                    # Attiva il relay
-                    activate_relay(tdoa_result['direction'])
+
+                    # Calcola la media e applica la soglia
+                    if all(r is not None for r in results):
+                        try:
+                            detection = (float(results[0].decode().strip('][')) +
+                                        float(results[1].decode().strip('][')) +
+                                        float(results[2].decode().strip(']['))) / 3
+                            with open(log_file_path, "a") as log_file:
+                                log_file.write(f"Detection: {detection}\n")
+                            if detection >= DETECTION_THRESHOLD:
+                                timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
+                                wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
+                                activate_relay(tdoa_result['direction'])
+                        except Exception as e:
+                            with open(log_file_path, "a") as log_file:
+                                log_file.write(f"Error parsing detection results: {e}\n")
                 else:
                     with open(log_file_path, "a") as log_file:
                         log_file.write("TDOA analysis failed\n")
@@ -262,7 +276,20 @@ async def main_loop_with_trigger():
                     log_file.write("Left trigger only, detecting on left channel\n")
                 
                 await perform_detection(left_channel, br, results, [0, 1, 2])
-                activate_relay("sinistra")
+                if all(r is not None for r in results):
+                    try:
+                        detection = (float(results[0].decode().strip('][')) +
+                                    float(results[1].decode().strip('][')) +
+                                    float(results[2].decode().strip(']['))) / 3
+                        with open(log_file_path, "a") as log_file:
+                            log_file.write(f"Detection: {detection}\n")
+                        if detection >= DETECTION_THRESHOLD:
+                            timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
+                            wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
+                            activate_relay("sinistra")
+                    except Exception as e:
+                        with open(log_file_path, "a") as log_file:
+                            log_file.write(f"Error parsing detection results: {e}\n")
             
             elif trigger_result['action'] == 'right_only':
                 # Solo il trigger destro attivato
@@ -270,22 +297,21 @@ async def main_loop_with_trigger():
                     log_file.write("Right trigger only, detecting on right channel\n")
                 
                 await perform_detection(right_channel, br, results, [0, 1, 2])
-                activate_relay("destra")
-            
-            # Calcola la media dei risultati di detection
-            if all(r is not None for r in results):
-                try:
-                    detection = (float(results[0].decode().strip('][')) +
-                                float(results[1].decode().strip('][')) +
-                                float(results[2].decode().strip(']['))) / 3
-                    
-                    with open(log_file_path, "a") as log_file:
-                        log_file.write(f"Detection: {detection}\n")
-                except Exception as e:
-                    with open(log_file_path, "a") as log_file:
-                        log_file.write(f"Error parsing detection results: {e}\n")
-            
-            time.sleep(1)
+                if all(r is not None for r in results):
+                    try:
+                        detection = (float(results[0].decode().strip('][')) +
+                                    float(results[1].decode().strip('][')) +
+                                    float(results[2].decode().strip(']['))) / 3
+                        with open(log_file_path, "a") as log_file:
+                            log_file.write(f"Detection: {detection}\n")
+                        if detection >= DETECTION_THRESHOLD:
+                            timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
+                            wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
+                            activate_relay("destra")
+                    except Exception as e:
+                        with open(log_file_path, "a") as log_file:
+                            log_file.write(f"Error parsing detection results: {e}\n")
+            await asyncio.sleep(1)
     
     except Exception as e:
         with open(log_file_path, "a") as log_file:

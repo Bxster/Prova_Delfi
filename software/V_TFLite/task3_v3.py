@@ -52,7 +52,7 @@ def spectrogramNicolas(signal, fs, window_size=2048, overlap=1024):
     spectrogram =  np.array(spectrogram).T
     return spectrogram
 
-def plotNicolas(spectrogram, fs, block_size, window_size=2048, min_freq=5000, max_freq=25000, rescale=1):
+def plotNicolas(spectrogram, fs, block_size, window_size=2048, min_freq=6000, max_freq=24000, rescale=1):
     freq_bins = int(max_freq / (fs / window_size))
     freq_bins_min = int(min_freq / (fs / window_size))
     #fig, ax = plt.subplots(1,1,figsize=(2.24,2.24), dpi=100)
@@ -140,8 +140,9 @@ async def handle_client(reader, writer):
     else:
         received_data = np.frombuffer(received_data, dtype=np.float32)
 
-    yApp_lite = compute(received_data, br)
-    writer.write(str(yApp_lite[0]).encode())
+    yApp_lite = compute(received_data, bitrate)
+    score = float(np.squeeze(yApp_lite))
+    writer.write(f"{score}\n".encode())
 
     # Chiudi la connessione
     writer.close()

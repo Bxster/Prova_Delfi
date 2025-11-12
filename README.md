@@ -24,7 +24,6 @@ LIFE DELFI è un sistema avanzato di rilevamento, analisi e interazione con sorg
 7. [:busts_in_silhouette: Utilizzo Utente](#utilizzo-utente)
    - [:robot: AI Detector](#ai-detector)
    - [:studio_microphone: Audio Recording](#audio-recording)
-   - [:loud_sound: Audio Output](#audio-output)
    - [:file_folder: Data Archive](#data-archive)
    - [:computer: Esempio d'utilizzo](#esempio-utilizzo)
 8. [:wrench: Utilizzo Utente Esperto](#utilizzo-utente-esperto)
@@ -38,7 +37,7 @@ LIFE DELFI è un sistema avanzato di rilevamento, analisi e interazione con sorg
 Il progetto Life DELFI, cofinanziato dal Programma Life dell’Unione Europea, affronta la crescente problematica delle interazioni tra delfini e pesca professionale, con l’obiettivo di ridurre catture accidentali e conflitti tra pescatori e cetacei. In questo ambito, il nostro lavoro ruota attorno alla concezione e realizzazione di DELFi, un sistema innovativo che unisce ricerca scientifica, tecnologie avanzate e sostenibilità economica, promuovendo una convivenza armoniosa tra la conservazione marina e l’industria della pesca.
 
 ### :building_construction: Architettura e Funzionamento
-DELFI si basa su idrofoni collegati a un Raspberry Pi Zero 2W, i quali consentono di raccogliere ed elaborare in tempo reale i segnali acustici subacquei. Un algoritmo di calcolo del TDOA (Time Difference of Arrival) determina l’orientamento della sorgente sonora, permettendo di emettere un suono nella direzione individuata. L’hardware è integrato nella “testa” di un pesce martello robotico, costituita da un tubo di plastica concavo di circa 15 x 40 cm.
+DELFI si basa su idrofoni collegati a un Raspberry Pi Zero 2W, i quali consentono di raccogliere ed elaborare in tempo reale i segnali acustici subacquei. Un algoritmo di calcolo del TDOA (Time Difference of Arrival) determina l’orientamento della sorgente sonora. L’hardware è integrato nella “testa” di un pesce martello robotico, costituita da un tubo di plastica concavo di circa 15 x 40 cm.
 
 ![disp](https://github.com/LabMACS/24.25_Marrone/blob/main/image/dispositivo.jpg)
 
@@ -46,11 +45,9 @@ DELFI si basa su idrofoni collegati a un Raspberry Pi Zero 2W, i quali consenton
 - **Localizzazione**\
 DELFi sfrutta il TDOA per identificare la posizione e la direzione d’arrivo dei suoni prodotti, in particolare quelli emessi dal delfino tursiope.
 - **Classificazione Sonora**\
-Un sistema basato su Machine Learning (reti neurali e modelli TensorFlow Lite) riconosce i segnali acustici dei delfini da altre fonti sottomarine.
-- **Risposta Comportamentale**\
-Il dispositivo può emettere suoni di possibili predatori (ad esempio, orche) per studiare la reazione e i comportamenti dei cetacei.
+ Un sistema basato su Machine Learning (reti neurali e modelli TensorFlow Lite) riconosce i segnali acustici dei delfini da altre fonti sottomarine.
 - **Interfaccia User-Friendly**\
-Un’interfaccia grafica accessibile via Wi-Fi semplifica il lavoro dell'utente finale.
+ Un’interfaccia grafica accessibile via Wi-Fi semplifica il lavoro dell'utente finale.
 
 Grazie a queste funzionalità, DELFi non solo offre un approccio tecnologico avanzato ed economico alla protezione dei delfini (riducendo le catture accidentali e salvaguardando l’attrezzatura da pesca), ma risulta anche perfettamente in linea con gli obiettivi di Life DELFI, contribuendo a modelli di gestione sostenibili che tutelino sia le popolazioni di delfini sia gli interessi dei pescatori.
 
@@ -87,26 +84,14 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
    - Configurazione: due canali stereo, ciascuno composto da due dischi disposti perpendicolarmente all’interno di un contenitore di plastica
    - Guadagno aggiuntivo: circuito preamplificatore SMD dedicato (circa 30 dB)
 
-- **Sistema di Emissione Sonora**
-   - Convertitore DC-DC Step-Up:
-      - Aumenta la tensione da 5 V (power bank) a 12 V per l’alimentazione dell’amplificatore audio
-   - Amplificatore Audio (TDA2030A):
-      - Potenza in uscita: 15 W
-      - Alimentazione: 12 V DC (forniti dal convertitore Step-Up)
-   - Controllo Emissione: gestito direttamente dal Raspberry Pi Zero 2W tramite due relè indipendenti
-   - Segnale Audio di Ingresso: fornito dal DAC dell’HiFiBerry
-
 - **Assembly Board (PCB)**
-   - Struttura portante per il posizionamento ottimale di tutti i componenti (Raspberry Pi, HiFiBerry, preamplificatori, relè, ecc.)
+   - Struttura portante per il posizionamento ottimale di tutti i componenti (Raspberry Pi, HiFiBerry, preamplificatori, ecc.)
    - Connettori:
       - Doppio connettore a 40 pin per collegare il Raspberry Pi all’HiFiBerry
       - 4 porte GPIO e 2 connessioni I2C aggiuntive
-      - Pin di alimentazione 5 V e GND dal Raspberry Pi Zero 2W (impiegati anche per il modulo relè)
-   - Controllo Relè: il pin 11 (GPIO17) del Raspberry Pi Zero 2W abilita o disabilita i due relè
+     - Pin di alimentazione 5 V e GND dal Raspberry Pi Zero 2W
  
-![hardware](https://github.com/LabMACS/24.25_Marrone/blob/main/image/emissione.jpeg)
-
-Questi componenti, opportunamente integrati, costituiscono l’intero sistema di acquisizione ed emissione audio basato su Raspberry Pi Zero 2W e HiFiBerry. L’assembly board facilita la connessione e la disposizione fisica di tutte le parti. 
+ Questi componenti, opportunamente integrati, costituiscono l’intero sistema di acquisizione e analisi audio basato su Raspberry Pi Zero 2W e HiFiBerry. L’assembly board facilita la connessione e la disposizione fisica di tutte le parti. 
 
 > Nota: Le specifiche complete dei componenti (idrofoni, amplificatori, schemi di collegamento, etc.) sono disponibili nella cartella `docs/` del repository nel documento `documentazione.pdf`.
 
@@ -153,11 +138,9 @@ Questi componenti, opportunamente integrati, costituiscono l’intero sistema di
 │   ├── interfaccia.png             # Interfaccia grafica
 │   ├── dispositivo.jpg             # Dispositivo assemblato
 │   ├── rasp.png                    # Raspberry + Hi-FiBerry
-│   ├── emissione.jpeg              # Modulo emissione
 │   ├── esempio1.png                # Esempio utilizzo modulo recording 1
 │   ├── esempio2.png                # Esempio utilizzo modulo recording 2
 │   ├── gantt.png                   # Gantt
-│   ├── emissione.jpeg              # Modulo emissione
 │   ├── logo.png              # Logo DELFI
 ├── software/
 │   ├── cgi-bin/                    # Script Bash per il controllo del sistema
@@ -233,9 +216,8 @@ http://10.0.0.1
 Da qui, si potranno utilizzare le principali funzionalità:
 1. **Registrazione e Analisi in Tempo Reale**
 2. **Localizzazione della Sorgente Sonora**
-3. **Emissione Audio**
-4. **Visualizzazione dei Risultati e Log**
-5. **Spegnimento del Dispositivo**
+3. **Visualizzazione dei Risultati e Log**
+4. **Spegnimento del Dispositivo**
 
 ![interfaccia](https://github.com/LabMACS/24.25_Marrone/blob/main/image/interfaccia.png)
 
@@ -257,7 +239,6 @@ Di seguito, alcune delle funzionalità disponibili tramite interfaccia:
    - Ciascuno spettrogramma viene processato da un modello TFLite.
    - L’elaborazione avviene in parallelo su tre client.
    - Se la probabilità media di rilevazione supera 0,5, si attiva la localizzazione.
-   - La direzione calcolata viene utilizzata per emettere un suono verso la sorgente rilevata.
    - I risultati sono inviati in formato JSON a un secondo dispositivo tramite `UART`.
 
 **Diagramma delle sequenze:**
@@ -276,12 +257,6 @@ Di seguito, alcune delle funzionalità disponibili tramite interfaccia:
 <div align="center">
   <img src="https://github.com/LabMACS/24.25_Marrone/blob/main/image/sequenze_rec.png" alt="seq2" width=70%>
 </div>
-
-<h3 id="audio-output">:loud_sound: Audio Output</h2>
-
-- Emette un audio di 30 secondi denominato orca_finale.wav, che simula il verso di un’orca.
-- L’emissione avviene in stereo, ma due relè permettono di controllare i canali in modo indipendente.
-- Utile per studi comportamentali su animali marini, simulando la presenza di predatori.
 
 <h3 id="data-archive">:file_folder: Data Archive</h2>
 

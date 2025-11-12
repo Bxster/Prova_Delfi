@@ -10,7 +10,6 @@ from socket import *
 import numpy as np
 import logging
 import time
-import RPi.GPIO as GPIO
 import os
 import sys
 
@@ -33,11 +32,6 @@ def get_log_file_path():
     return log_file_path
 
 log_file_path = get_log_file_path()
-
-# Imposta la modalità del GPIO
-GPIO.setmode(GPIO.BCM)
-pin = 27
-GPIO.setup(pin, GPIO.IN)
 
 
 def get_sample():
@@ -155,42 +149,6 @@ async def perform_detection(channel, br, results, block_indices):
     await asyncio.gather(*tasks)
 
 
-def activate_relay(direction):
-    """
-    Attiva il relay in base alla direzione.
-    
-    Args:
-        direction (str): Direzione ('sinistra', 'destra', 'centro')
-    """
-    try:
-        GPIO.setmode(GPIO.BCM)
-        PIN_ALIMENTAZIONE = 17
-        PIN_SINISTRO = 24
-        PIN_DESTRO = 27
-        
-        GPIO.setup(PIN_ALIMENTAZIONE, GPIO.OUT)
-        GPIO.setup(PIN_SINISTRO, GPIO.OUT)
-        GPIO.setup(PIN_DESTRO, GPIO.OUT)
-        
-        GPIO.output(PIN_ALIMENTAZIONE, GPIO.LOW)
-        
-        if "sinistra" in direction.lower():
-            GPIO.output(PIN_SINISTRO, GPIO.LOW)
-        elif "destra" in direction.lower():
-            GPIO.output(PIN_DESTRO, GPIO.LOW)
-        else:  # centro
-            GPIO.output(PIN_SINISTRO, GPIO.LOW)
-            GPIO.output(PIN_DESTRO, GPIO.LOW)
-        
-        GPIO.setup(PIN_ALIMENTAZIONE, GPIO.IN)
-        GPIO.setup(PIN_SINISTRO, GPIO.IN)
-        GPIO.setup(PIN_DESTRO, GPIO.IN)
-        GPIO.cleanup()
-    except Exception as e:
-        with open(log_file_path, "a") as log_file:
-            log_file.write(f"ERRORE activate_relay: {e}\n")
-
-
 async def main_loop_with_trigger():
     """
     Loop principale con power trigger integration.
@@ -262,7 +220,6 @@ async def main_loop_with_trigger():
                             if detection >= DETECTION_THRESHOLD:
                                 timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
                                 wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
-                                activate_relay(tdoa_result['direction'])
                         except Exception as e:
                             with open(log_file_path, "a") as log_file:
                                 log_file.write(f"Error parsing detection results: {e}\n")
@@ -286,7 +243,6 @@ async def main_loop_with_trigger():
                         if detection >= DETECTION_THRESHOLD:
                             timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
                             wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
-                            activate_relay("sinistra")
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection results: {e}\n")
@@ -307,7 +263,6 @@ async def main_loop_with_trigger():
                         if detection >= DETECTION_THRESHOLD:
                             timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
                             wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
-                            activate_relay("destra")
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection results: {e}\n")

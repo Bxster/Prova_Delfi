@@ -6,7 +6,13 @@ sudo amixer sset "ADC Right Input" "VINR1[SE]"
 sudo amixer sset "ADC" 40dB
 
 # Get hw_id HiFiBerry
-hw_id=$(aplay -l | grep hifiberry | cut -b 6)
+hw_id=$(aplay -l | grep -i hifiberry | sed -n 's/^card \([0-9]\+\):.*/\1/p' | head -n1)
+if [ -z "$hw_id" ]; then
+  hw_id=$(aplay -l | sed -n 's/^card \([0-9]\+\):.*/\1/p' | head -n1)
+fi
+if [ -z "$hw_id" ]; then
+  hw_id=0
+fi
 
 # starting jackd
 sudo /usr/bin/jackd -r -dalsa -dhw:$hw_id -p512 -r192000 -n7 &

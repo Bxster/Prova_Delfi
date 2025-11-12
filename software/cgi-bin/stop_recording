@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "Content-type: text/plain"
+echo ""
+
+# Cerca il processo che inizia con la stringa indicata
+PROCESS=$(ps aux | grep "bash -c while true; do" | grep -v grep | awk '{print $2}')
+
+kill -9 $PROCESS

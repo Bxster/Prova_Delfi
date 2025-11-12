@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "Content-type: text/plain"
+echo ""
+
+# Avvia Start.sh
+/home/pi/V_TFLite/run.sh &

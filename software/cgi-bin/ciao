@@ -1,0 +1,5 @@
+#!/usr/bin/python3 -u
+
+print ("Content-type: text\html\n\n")
+
+print ("<h1>Ciao!</h1>")

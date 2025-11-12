@@ -1,0 +1,62 @@
+#!/bin/bash
+
+echo "Content-type: text/plain"
+echo ""
+
+
+# Funzione per ottenere lo stato delle GPIO (se wiringPi è installato)
+function gpio_status {
+    if command -v gpio &> /dev/null
+    then
+        echo "Stato corrente delle GPIO:"
+        gpio readall
+    else
+        echo "wiringPi non è installato. Non è possibile ottenere lo stato delle GPIO."
+        echo "Per installare wiringPi: sudo apt-get install wiringpi"
+    fi
+}
+
+# 1. Carico CPU
+echo "### Carico CPU ###"
+top -b -d1 -n1 | head -n 4
+
+
+# 2. Utilizzo Memoria
+echo ""
+echo "### Utilizzo Memoria ###"
+free -h
+
+# 3. Utilizzo Storage
+echo ""
+echo "### Utilizzo dello Storage ###"
+df -h
+
+# 4. Data e Ora Corrente
+echo ""
+echo "### Data e Ora ###"
+date
+
+# 5. Dispositivi USB Connessi
+echo ""
+echo "### Dispositivi USB Connessi ###"
+lsusb
+
+
+# 6. Stato GPIO
+echo ""
+echo "### Stato GPIO ###"
+gpio_status
+
+echo "### Dispositivi Audio ###"
+# 6. Stato Audio
+echo ""
+sudo /usr/bin/aplay --list-devices
+
+echo ""
+echo "### PS AX ###"
+ps ax
+
+
+# Fine script
+echo ""
+echo "### Fine report ###"

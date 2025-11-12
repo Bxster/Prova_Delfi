@@ -1,0 +1,27 @@
+#!/bin/bash
+
+echo "Content-type: text/plain"
+echo ""
+
+# Imposta i parametri della HiFiBerry
+sudo amixer sset "ADC Left Input" "VINL1[SE]"
+sudo amixer sset "ADC Right Input" "VINR1[SE]"
+sudo amixer sset "ADC" 40dB
+
+# Avvio della registrazione audio in loop
+nohup bash -c 'while true; do
+    # Ottieni data e ora correnti
+    current_datetime=$(date +"%Y-%m-%d_%H-%M-%S")
+    file_audio=/home/pi/data/REC_$current_datetime.wav
+
+    # Registra audio
+    sudo arecord -d 2 -r 192000 -c 2 -f S16_LE "$file_audio"
+
+    # Analizza il file audio e scrivi loutput in un file di log
+    python3 /home/pi/Progetto/direzione.py "$file_audio" >> /home/pi/data/direzione.log 2>&1
+
+done' > /dev/null 2>&1 &
+
+# Messaggio di conferma
+echo ""
+echo "Registrazione Audio Avviata"

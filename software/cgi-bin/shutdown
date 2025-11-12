@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "Content-type: text/plain"
+echo ""
+sudo /sbin/shutdown -h now

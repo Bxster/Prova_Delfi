@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "Content-type: text/plain"
+echo ""
+
+# Imposta la modalità GPIO (BCM)
+gpio -g mode 27 in
+gpio -g mode 23 in
+gpio -g mode 17 in
+
+# Cerca il processo che inizia con la stringa indicata
+PROCESS=$(ps aux | grep "bash -c while true; do     sudo aplay" | grep -v grep | awk '{print $2}')
+PROCESS2=$(ps aux | grep "aplay -D hw:0,0" | grep -v grep | awk '{print $2}')
+
+kill -9 $PROCESS
+sudo kill $PROCESS2

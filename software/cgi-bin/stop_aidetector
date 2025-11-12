@@ -1,0 +1,23 @@
+#!/bin/bash
+
+echo "Content-type: text/plain"
+echo ""
+
+# Termina il processo jackd
+JACKD_PROCESS=$(ps aux | grep "jackd -r -dalsa -dhw:0 -p512 -r192000 -n7" | grep -v grep | awk '{print $2}')
+sudo kill -9 $JACKD_PROCESS
+
+
+# Termina il processo task1_v3.py
+TASK1_PROCESS=$(ps aux | grep "task1_v3.py" | grep -v grep | awk '{print $2}')
+sudo kill -9 $TASK1_PROCESS
+
+
+# Termina il processo task2_v3.py
+TASK2_PROCESS=$(ps aux | grep "task2_v3.py" | grep -v grep | awk '{print $2}')
+sudo kill -9 $TASK2_PROCESS
+
+
+# Termina il processo task3_v3.py
+TASK3_PROCESS=$(ps aux | grep "task3_v3.py" | grep -v grep | awk '{print $2}')
+sudo kill -9 $TASK3_PROCESS

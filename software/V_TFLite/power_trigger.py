@@ -7,18 +7,14 @@ Gestisce la logica di TDOA e detection in base ai trigger attivati.
 """
 
 import numpy as np
-from scipy.signal import butter, filtfilt
 import subprocess
 import json
 import logging
-import time
-import os
 
-# Configurazione dei parametri
-AMPLITUDE_THRESHOLD = 0.05  # Soglia di ampiezza (RMS) - da calibrare
-FREQUENCY_THRESHOLD_MIN = 5000  # Frequenza minima (Hz)
-FREQUENCY_THRESHOLD_MAX = 25000  # Frequenza massima (Hz)
-POWER_THRESHOLD = -40  # Soglia di potenza in dB - da calibrare
+# Parametri per la prominenza spettrale
+PROMINENCE_BAND_MIN_HZ = 6000
+PROMINENCE_BAND_MAX_HZ = 24000
+PROMINENCE_THRESHOLD_DB = 12.0
 
 # Configurazione direzione
 DIREZIONE_SCRIPT = "/home/pi/Ecolocalizzazione/direzione.py"
@@ -28,29 +24,29 @@ class PowerTrigger:
     """
     Classe per gestire il power trigger su due canali audio.
     """
-    
-    def __init__(self, sample_rate, amplitude_threshold=AMPLITUDE_THRESHOLD, 
-                 power_threshold=POWER_THRESHOLD, log_file_path=None):
+
+    def __init__(self, sample_rate, prominence_threshold_db=PROMINENCE_THRESHOLD_DB,
+                 band_min_hz=PROMINENCE_BAND_MIN_HZ, band_max_hz=PROMINENCE_BAND_MAX_HZ,
+                 log_file_path=None):
         """
         Inizializza il Power Trigger.
-        
+
         Args:
             sample_rate (int): Frequenza di campionamento (Hz)
-            amplitude_threshold (float): Soglia di ampiezza RMS
-            power_threshold (float): Soglia di potenza in dB
             log_file_path (str): Percorso del file di log
         """
         self.sample_rate = sample_rate
-        self.amplitude_threshold = amplitude_threshold
-        self.power_threshold = power_threshold
+        self.prominence_threshold_db = prominence_threshold_db
+        self.band_min_hz = band_min_hz
+        self.band_max_hz = band_max_hz
         self.log_file_path = log_file_path
-        
+
         # Setup logging
         if log_file_path:
             self.logger = self._setup_logger(log_file_path)
         else:
             self.logger = logging.getLogger(__name__)
-    
+
     def _setup_logger(self, log_file_path):
         """Configura il logger."""
         logger = logging.getLogger(__name__)
@@ -60,100 +56,62 @@ class PowerTrigger:
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         return logger
-    
-    def calculate_rms(self, signal):
+
+    def compute_spectral_prominence(self, signal):
         """
-        Calcola il valore RMS (Root Mean Square) del segnale.
-        
-        Args:
-            signal (numpy.ndarray): Segnale audio
-            
-        Returns:
-            float: Valore RMS
+        Calcola la prominenza del picco spettrale (dB) nella banda [band_min_hz, band_max_hz].
+        Ritorna (prominence_db, peak_freq_hz).
         """
-        return np.sqrt(np.mean(signal ** 2))
-    
-    def calculate_power_db(self, signal):
-        """
-        Calcola la potenza del segnale in dB.
-        
-        Args:
-            signal (numpy.ndarray): Segnale audio
-            
-        Returns:
-            float: Potenza in dB
-        """
-        rms = self.calculate_rms(signal)
-        # Evita log(0)
-        if rms < 1e-10:
-            return -np.inf
-        power_db = 20 * np.log10(rms)
-        return power_db
-    
-    def get_dominant_frequency(self, signal):
-        """
-        Calcola la frequenza dominante del segnale usando FFT.
-        
-        Args:
-            signal (numpy.ndarray): Segnale audio
-            
-        Returns:
-            float: Frequenza dominante (Hz)
-        """
-        # Calcola la FFT
-        fft = np.fft.fft(signal)
-        magnitude = np.abs(fft)
-        
-        # Trova l'indice della frequenza dominante
-        dominant_idx = np.argmax(magnitude)
-        
-        # Converte l'indice in frequenza
-        freqs = np.fft.fftfreq(len(signal), 1 / self.sample_rate)
-        dominant_freq = abs(freqs[dominant_idx])
-        
-        return dominant_freq
-    
+        n = len(signal)
+        if n == 0:
+            return -np.inf, 0.0
+        window = np.hanning(n)
+        sigw = signal * window
+        spec = np.fft.rfft(sigw)
+        mag = np.abs(spec)
+        mag_db = 20 * np.log10(mag + 1e-12)
+        freqs = np.fft.rfftfreq(n, 1 / self.sample_rate)
+        mask = (freqs >= self.band_min_hz) & (freqs <= self.band_max_hz)
+        if not np.any(mask):
+            return -np.inf, 0.0
+        band_mag_db = mag_db[mask]
+        band_freqs = freqs[mask]
+        if band_mag_db.size == 0:
+            return -np.inf, 0.0
+        median_db = np.median(band_mag_db)
+        max_idx = int(np.argmax(band_mag_db))
+        prom_db = float(band_mag_db[max_idx] - median_db)
+        peak_freq = float(band_freqs[max_idx])
+        return prom_db, peak_freq
+
     def check_trigger(self, signal, channel_name=""):
         """
         Verifica se il trigger deve attivarsi per il segnale dato.
-        
+
         Args:
             signal (numpy.ndarray): Segnale audio del canale
             channel_name (str): Nome del canale (per logging)
-            
+
         Returns:
             dict: Dizionario con informazioni del trigger
                 {
                     'triggered': bool,
-                    'rms': float,
-                    'power_db': float,
-                    'dominant_freq': float
+                    'prominence_db': float,
+                    'peak_freq': float
                 }
         """
-        rms = self.calculate_rms(signal)
-        power_db = self.calculate_power_db(signal)
-        dominant_freq = self.get_dominant_frequency(signal)
-        
-        # Verifica se il trigger si attiva
-        amplitude_check = rms > self.amplitude_threshold
-        power_check = power_db > self.power_threshold
-        frequency_check = (FREQUENCY_THRESHOLD_MIN <= dominant_freq <= FREQUENCY_THRESHOLD_MAX)
-        
-        triggered = amplitude_check and power_check and frequency_check
-        
+        prominence_db, peak_freq = self.compute_spectral_prominence(signal)
+        triggered = prominence_db >= self.prominence_threshold_db
         if self.logger:
             self.logger.info(
-                f"[{channel_name}] RMS: {rms:.6f}, Power: {power_db:.2f}dB, "
-                f"Freq: {dominant_freq:.2f}Hz, Triggered: {triggered}"
+                f"[{channel_name}] PeakFreq: {peak_freq:.2f}Hz, Prom: {prominence_db:.2f}dB, Triggered: {triggered}"
             )
-        
         return {
             'triggered': triggered,
-            'rms': rms,
-            'power_db': power_db,
-            'dominant_freq': dominant_freq
+            'prominence_db': prominence_db,
+            'peak_freq': peak_freq
         }
-    
+
     def process_stereo_buffer(self, left_channel, right_channel):
         """
         Processa il buffer stereo e determina quale canale analizzare.
@@ -300,32 +258,3 @@ def get_nearest_channel(left_channel, right_channel, direction):
     else:  # centro
         return left_channel  # Default al canale sinistro
 
-
-if __name__ == "__main__":
-    # Esempio di utilizzo
-    print("Power Trigger Module - Example Usage")
-    
-    # Parametri di test
-    sample_rate = 192000
-    duration = 0.6  # secondi
-    
-    # Crea segnali di test
-    t = np.linspace(0, duration, int(sample_rate * duration))
-    
-    # Canale sinistro: segnale silenzioso
-    left_channel = 0.01 * np.sin(2 * np.pi * 10000 * t)
-    
-    # Canale destro: segnale forte
-    right_channel = 0.1 * np.sin(2 * np.pi * 12000 * t)
-    
-    # Inizializza il trigger
-    trigger = PowerTrigger(sample_rate)
-    
-    # Processa il buffer
-    result = trigger.process_stereo_buffer(left_channel, right_channel)
-    
-    print("\n=== Power Trigger Result ===")
-    print(f"Left Triggered: {result['left_triggered']}")
-    print(f"Right Triggered: {result['right_triggered']}")
-    print(f"Action: {result['action']}")
-    print(f"Channel to Analyze: {result['channel_to_analyze']}")

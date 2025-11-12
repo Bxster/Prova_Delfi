@@ -254,9 +254,9 @@ async def main_loop_with_trigger():
                     # Calcola la media e applica la soglia
                     if all(r is not None for r in results):
                         try:
-                            detection = (float(results[0].decode().strip('][')) +
-                                        float(results[1].decode().strip('][')) +
-                                        float(results[2].decode().strip(']['))) / 3
+                            detection = (float(results[0].decode().strip()) +
+                                        float(results[1].decode().strip()) +
+                                        float(results[2].decode().strip())) / 3
                             with open(log_file_path, "a") as log_file:
                                 log_file.write(f"Detection: {detection}\n")
                             if detection >= DETECTION_THRESHOLD:
@@ -278,9 +278,9 @@ async def main_loop_with_trigger():
                 await perform_detection(left_channel, br, results, [0, 1, 2])
                 if all(r is not None for r in results):
                     try:
-                        detection = (float(results[0].decode().strip('][')) +
-                                    float(results[1].decode().strip('][')) +
-                                    float(results[2].decode().strip(']['))) / 3
+                        detection = (float(results[0].decode().strip()) +
+                                    float(results[1].decode().strip()) +
+                                    float(results[2].decode().strip())) / 3
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:
@@ -299,9 +299,9 @@ async def main_loop_with_trigger():
                 await perform_detection(right_channel, br, results, [0, 1, 2])
                 if all(r is not None for r in results):
                     try:
-                        detection = (float(results[0].decode().strip('][')) +
-                                    float(results[1].decode().strip('][')) +
-                                    float(results[2].decode().strip(']['))) / 3
+                        detection = (float(results[0].decode().strip()) +
+                                    float(results[1].decode().strip()) +
+                                    float(results[2].decode().strip())) / 3
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:

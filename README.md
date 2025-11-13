@@ -3,7 +3,7 @@
 LIFE DELFI è un sistema avanzato di rilevamento, analisi e interazione con sorgenti acustiche subacquee, sviluppato come parte del Corso di Laboratorio di Meccatronica - Università Politecnica delle Marche.
 
 <div align="center">
-  <img src="https://github.com/LabMACS/24.25_Marrone/blob/main/image/logo.png" alt="logo">
+  <img src="image/logo.png" alt="logo">
 </div>
 
 <div align="center">
@@ -34,7 +34,7 @@ Il progetto Life DELFI, cofinanziato dal Programma Life dell’Unione Europea, a
 ### :building_construction: Architettura e Funzionamento
 DELFI si basa su idrofoni collegati a un Raspberry Pi Zero 2W, i quali consentono di raccogliere ed elaborare in tempo reale i segnali acustici subacquei. Un algoritmo di calcolo del TDOA (Time Difference of Arrival) determina l’orientamento della sorgente sonora. L’hardware è integrato nella “testa” di un pesce martello robotico, costituita da un tubo di plastica concavo di circa 15 x 40 cm.
 
-![disp](https://github.com/LabMACS/24.25_Marrone/blob/main/image/dispositivo.jpg)
+![disp](image/rasp.png)
 
 ### :star: Caratteristiche Principali
 - **Localizzazione**\
@@ -62,7 +62,7 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
       - ADC 192 kHz/24 bit su due canali di ingresso
       - Preamplificatore con guadagno di 40 dB integrato
 
-![hardware](https://github.com/LabMACS/24.25_Marrone/blob/main/image/rasp.png)
+![hardware](image/rasp.png)
 
 - **Preamplificatore**
    - Stadi di amplificazione:
@@ -112,36 +112,54 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 
 ```
 ├── device2/
-│   ├── ssh.txt                     # Fle per configurazione ssh secondo dispositivo
-│   ├── wpa_supplicant.conf.txt     # Fle per configurazione Wi-Fi secondo dispositivo
-│── docs/
-│   ├── Deliverable1.xlsx           # Deliverable 1
-│   ├── Deliverable2.pdf            # Deliverable 2
-│   ├── Deliverable3.pdf            # Deliverable 3
-│   ├── Deliverable4.pdf            # Deliverable 4
-│   ├── Presentazione.pptx          # Presentazione del progetto
-│   ├── Req_GANTT.pptx              # Requisiti e GANTT
-│   ├── manuale_utente.pdf          # Manuale per l'utente
-│   ├── manuale_operatore.pdf       # Manuale per l'utente operatore
-│   ├── manuale_sviluppatore.pdf    # Manuale per l'utente sviluppatore
-│   ├── documentazione.pdf          # Documentazione
-│   ├── stato_dell_arte.pdf         # Relazione sullo stato dell'arte
+│   └── wpa_supplicant.conf.txt
 ├── image/
-│   ├── imager.png                  # Raspberry Pi Imager
-│   ├── dispositivo.jpg             # Dispositivo assemblato
-│   ├── rasp.png                    # Raspberry + Hi-FiBerry
-│   ├── esempio1.png                # Esempio utilizzo modulo recording 1
-│   ├── esempio2.png                # Esempio utilizzo modulo recording 2
-│   ├── gantt.png                   # Gantt
-│   ├── logo.png              # Logo DELFI
+│   ├── imager.png
+│   ├── esempio1.png
+│   ├── esempio2.png
+│   ├── interfaccia.png
+│   ├── logo.png
+│   ├── rasp.png
+│   ├── sequenze_ai.png
+│   └── sequenze_rec.png
 ├── software/
-│   ├── Ecolocalizzazione/          # Modulo per il rilevamento sonoro
-│       ├── Audio/                  # Audio di test
-│       ├── direzione.py            # Script per la localizzazione della sorgente
-│   ├── jack-ring-socket-server/    # Server per la registrazione audio stereo
-│   ├── V_TFLite/                   # Algoritmi di elaborazione del segnale
-├── delfi.iso.zip                   # Immagine compressa del sistema operativo custom
-└── README.md                       # Documentazione del progetto
+│   ├── Ecolocalizzazione/
+│   │   ├── Audio/
+│   │   └── direzione.py
+│   ├── V_TFLite/
+│   │   ├── det.sh
+│   │   ├── detector_v3_with_trigger.py
+│   │   ├── model.tflite
+│   │   ├── power_trigger.py
+│   │   ├── run.sh
+│   │   ├── start_jack_ring_server.sh
+│   │   ├── stop_all.sh
+│   │   ├── task1_v3.py
+│   │   ├── task2_v3.py
+│   │   └── task3_v3.py
+│   ├── jack-ring-socket-server/
+│   │   ├── Makefile
+│   │   ├── jack-ring-socket-server
+│   │   ├── argparser.c
+│   │   ├── argparser.h
+│   │   ├── jackclient.c
+│   │   ├── jackclient.h
+│   │   ├── main.c
+│   │   ├── ringbuffer.c
+│   │   ├── ringbuffer.h
+│   │   ├── socketserver.c
+│   │   └── socketserver.h
+│   └── legacy/
+│       ├── converter.py
+│       └── cgi-bin/
+│           ├── aidetector
+│           ├── recording
+│           ├── stop_recording
+│           ├── stop_aidetector
+│           ├── status
+│           ├── shutdown
+│           └── ciao
+└── README.md
 ```
 
 <h2 id="installazione">:gear: Installazione</h2>

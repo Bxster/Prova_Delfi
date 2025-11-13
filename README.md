@@ -21,16 +21,11 @@ LIFE DELFI è un sistema avanzato di rilevamento, analisi e interazione con sorg
 4. [:file_folder: Struttura Repository](#struttura-repository)
 5. [:gear: Installazione](#installazione)
 6. [:test_tube: Test](#test)
-7. [:busts_in_silhouette: Utilizzo Utente](#utilizzo-utente)
-   - [:robot: AI Detector](#ai-detector)
-   - [:studio_microphone: Audio Recording](#audio-recording)
-   - [:file_folder: Data Archive](#data-archive)
-   - [:computer: Esempio d'utilizzo](#esempio-utilizzo)
-8. [:wrench: Utilizzo Utente Esperto](#utilizzo-utente-esperto)
-9. [:bar_chart: Gantt](#gantt)
-10. [:clipboard: TC/TP](#tc)
-11. [🎯 KPI](#kpi)
-12. [:handshake: Contributors](#contributors)
+7. [:keyboard: Utilizzo da terminale (CLI)](#cli)
+8. [:bar_chart: Gantt](#gantt)
+9. [:clipboard: TC/TP](#tc)
+10. [🎯 KPI](#kpi)
+11. [:handshake: Contributors](#contributors)
 
 <h2 id="che-cose-life-delfi">:dolphin: Che cos'è LIFE DELFI</h2>
 
@@ -46,8 +41,6 @@ DELFI si basa su idrofoni collegati a un Raspberry Pi Zero 2W, i quali consenton
 DELFi sfrutta il TDOA per identificare la posizione e la direzione d’arrivo dei suoni prodotti, in particolare quelli emessi dal delfino tursiope.
 - **Classificazione Sonora**\
  Un sistema basato su Machine Learning (reti neurali e modelli TensorFlow Lite) riconosce i segnali acustici dei delfini da altre fonti sottomarine.
-- **Interfaccia User-Friendly**\
- Un’interfaccia grafica accessibile via Wi-Fi semplifica il lavoro dell'utente finale.
 
 Grazie a queste funzionalità, DELFi non solo offre un approccio tecnologico avanzato ed economico alla protezione dei delfini (riducendo le catture accidentali e salvaguardando l’attrezzatura da pesca), ma risulta anche perfettamente in linea con gli obiettivi di Life DELFI, contribuendo a modelli di gestione sostenibili che tutelino sia le popolazioni di delfini sia gli interessi dei pescatori.
 
@@ -135,7 +128,6 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 │   ├── stato_dell_arte.pdf         # Relazione sullo stato dell'arte
 ├── image/
 │   ├── imager.png                  # Raspberry Pi Imager
-│   ├── interfaccia.png             # Interfaccia grafica
 │   ├── dispositivo.jpg             # Dispositivo assemblato
 │   ├── rasp.png                    # Raspberry + Hi-FiBerry
 │   ├── esempio1.png                # Esempio utilizzo modulo recording 1
@@ -143,7 +135,6 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 │   ├── gantt.png                   # Gantt
 │   ├── logo.png              # Logo DELFI
 ├── software/
-│   ├── cgi-bin/                    # Script Bash per il controllo del sistema
 │   ├── Ecolocalizzazione/          # Modulo per il rilevamento sonoro
 │       ├── Audio/                  # Audio di test
 │       ├── direzione.py            # Script per la localizzazione della sorgente
@@ -207,147 +198,31 @@ Il risultato della localizzazione sarà visualizzato nel terminale, ad esempio:
 Il suono arriva esattamente dal centro (0-3 gradi)
 ```
 
-<h2 id="utilizzo-utente">:busts_in_silhouette: Utilizzo utente</h2>
+<h2 id="cli">:keyboard: Utilizzo da terminale (CLI)</h2>
 
-Dopo l’avvio del Raspberry Pi con l’immagine custom, verrà creata automaticamente una rete Wi-Fi denominata AIDD, accessibile tramite PC o smartphone (password: delfi2024). Una volta connessi, aprire il browser e navigare all’indirizzo:
-```java
-http://10.0.0.1
-```
-Da qui, si potranno utilizzare le principali funzionalità:
-1. **Registrazione e Analisi in Tempo Reale**
-2. **Localizzazione della Sorgente Sonora**
-3. **Visualizzazione dei Risultati e Log**
-4. **Spegnimento del Dispositivo**
+- **Avvio AI Detector**
+  ```bash
+  /home/pi/V_TFLite/run.sh
+  ```
 
-![interfaccia](https://github.com/LabMACS/24.25_Marrone/blob/main/image/interfaccia.png)
+- **Stop AI Detector**
+  ```bash
+  /home/pi/Prova_Delfi/software/V_TFLite/stop_all.sh
+  ```
+  Se non è eseguibile:
+  ```bash
+  chmod +x /home/pi/Prova_Delfi/software/V_TFLite/stop_all.sh
+  ```
 
-Di seguito, alcune delle funzionalità disponibili tramite interfaccia:
+- **TDOA su file**
+  ```bash
+  cd /home/pi/Prova_Delfi/software/Ecolocalizzazione
+  python3 direzione.py 'Audio/0gradi.wav'
+  ```
 
-<h3 id="ai-detector">:robot: AI Detector</h2>
-
-1. **:microphone: Acquisizione Audio**
-   - L’acquisizione avviene tramite `JACK Audio Connection Kit`.
-   - I dati vengono gestiti da un buffer circolare che separa i canali (sinistro e destro).
-
-2. **:gear: Elaborazione e Trasferimento**
-   - I dati audio sono inviati via socket TCP a un client Python.
-   - Il segnale viene suddiviso in blocchi di 0,6 secondi.
-   - Ogni blocco viene segmentato ulteriormente in blocchi da 0,2 secondi per l’elaborazione multithreading.
-   - Viene generata una spettrogramma per ogni blocco, convertito in scala di grigi.
-
-3. **:brain: Inferenza (TensorFlow Lite)**
-   - Ciascuno spettrogramma viene processato da un modello TFLite.
-   - L’elaborazione avviene in parallelo su tre client.
-   - Se la probabilità media di rilevazione supera 0,5, si attiva la localizzazione.
-   - I risultati sono inviati in formato JSON a un secondo dispositivo tramite `UART`.
-
-**Diagramma delle sequenze:**
-<div align="center">
-  <img src="https://github.com/LabMACS/24.25_Marrone/blob/main/image/sequenze_ai.png" alt="seq1", width=85%>
-</div>
-
-<h3 id="audio-recording">:studio_microphone: Audio Recording</h2>
-
-- Registra 2 secondi di audio, elabora per 4 secondi, poi ripete il ciclo.
-- Analizza i segnali di entrambi i canali per ricavare l’orientamento della sorgente usando la cross-correlazione dei loro spettrogrammi.
-- Stima il TDOA (Time Difference of Arrival) per individuare la direzione del suono.
-
-**Diagramma delle sequenze:**
-
-<div align="center">
-  <img src="https://github.com/LabMACS/24.25_Marrone/blob/main/image/sequenze_rec.png" alt="seq2" width=70%>
-</div>
-
-<h3 id="data-archive">:file_folder: Data Archive</h2>
-
-Organizza e visualizza i file audio in due aree:
-
-1. **Sezione di Registrazione**
-   - Elenco dei file .wav acquisiti.
-   - File di testo associato che registra la direzione acustica calcolata.
-
-2. **Sottosezione di Detection**
-   - Contiene i file elaborati dal sistema di rilevamento.
-   - File di testo che specifica la validità della rilevazione per ogni traccia audio.
-
-<h3 id="esempio-utilizzo">:computer: Esempio d'utilizzo</h2>
-
-1. Avvio della registrazione:
-   - Dopo aver effettuato l'accesso all'interfaccia grafica, cliccare sul blocco "Audio Recording" per avviare la registrazione.
-   - Una volta avviata, il blocco cambierà colore diventando arancione, come mostrato in figura, per indicare che la registrazione è attiva.
-
-![esempio1](https://github.com/LabMACS/24.25_Marrone/blob/main/image/esempio1.png)
-
-2. Interruzione della registrazione:
-   - Per interrompere la registrazione, cliccare nuovamente sullo stesso blocco "Audio Recording".
-   - Al termine, apparirà un messaggio di conferma con la dicitura: "Audio Recording Stopped"
-   - Questo messaggio conferma che la registrazione è stata interrotta correttamente.
-
-![esempio2](https://github.com/LabMACS/24.25_Marrone/blob/main/image/esempio2.png)
-
-<h2 id="utilizzo-utente-esperto">:wrench: Utilizzo utente esperto</h2>
-
-Per chi desidera andare oltre l’interfaccia grafica e lavorare da terminale:
-
-1. **:electric_plug: Connessione SSH**
-
-   Una volta connessi alla rete AIDD, aprire il terminale e digitare:
-    ```bash
-    ssh pi@10.0.0.1
-    ```
-    
-   > Password: `raspberry`.
-
-2. **:hammer_and_wrench: Avvio e Modifica Script**
-
-    - Gli script che gestiscono l’interfaccia si trovano in `/var/www/cgi-bin`:
-      ```bash
-      cd /var/www/cgi-bin
-      ```
-    
-    - Per eseguire uno script manualmente:
-      ```bash
-      ./<nome_script>
-      ```
-      
-    - Per modificare uno script direttamente da terminale:
-      ```bash
-      sudo nano /var/www/cgi-bin/<nome_script>
-      ```
-      
-    - Per caricare uno script dal PC locale al Raspberry, usare `scp` (da PC locale):
-      ```bash
-      scp '<percorso_script_locale>' pi@10.0.0.1:'<percorso_script_da_sovrascrivere>'
-      ```
-
-3. **:clipboard: Risultati e Log**
-    - Log e file audio vengono salvati in `/home/pi/data`.
-    - I task `Audio Recording` e `AI Detector` producono log in formato `.log` e audio in `.wav`.
-    - I file del modulo `AI Detector` sono in `/home/pi/data/Detections`
-
-4. **:eyes: Visualizzazione Risultati**
-
-    - Si può usare `sudo nano` per leggere un file di log:
-        ```bash
-        sudo nano /home/pi/data/direzione.log
-        ```
-      
-    - In alternativa, è possibile ricevere i risultati in *tempo reale* su un secondo dispositivo via `UART`.
-        1. Collegare il dispositivo via UART.
-         
-        2. Installare python3 sul secondo dispositivo:
-            ```bash
-            sudo apt update
-            sudo apt upgrade
-            sudo apt install python3 python3-pip
-            ```
-
-        3. Avviare lo script `UART.py` sul dispositivo secondario:
-            ```bash
-            python3 UART.py
-            ```
-
-   In questo modo, ogni nuovo risultato verrà trasmesso in formato JSON tramite la porta seriale.
+- **Log e output**
+  - Log detector: `/home/pi/data/detection_log.txt`
+  - Detections WAV: `/home/pi/data/Detections/`
 
 <h2 id="gantt">📊 Gantt</h2>
 

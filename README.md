@@ -114,14 +114,6 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 ├── device2/
 │   └── wpa_supplicant.conf.txt
 ├── image/
-│   ├── imager.png
-│   ├── esempio1.png
-│   ├── esempio2.png
-│   ├── interfaccia.png
-│   ├── logo.png
-│   ├── rasp.png
-│   ├── sequenze_ai.png
-│   └── sequenze_rec.png
 ├── software/
 │   ├── Ecolocalizzazione/
 │   │   ├── Audio/
@@ -152,13 +144,6 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 │   └── legacy/
 │       ├── converter.py
 │       └── cgi-bin/
-│           ├── aidetector
-│           ├── recording
-│           ├── stop_recording
-│           ├── stop_aidetector
-│           ├── status
-│           ├── shutdown
-│           └── ciao
 └── README.md
 ```
 
@@ -179,7 +164,7 @@ Utilizzare [Raspberry Pi Imager](https://www.raspberrypi.com/software/) o un sof
 4. **:rocket: Avvio su Raspberry Pi**\
 Inserire la SD card nel Raspberry Pi e accendere il dispositivo. Il sistema si avvierà con l’immagine personalizzata.
 
-![imager](https://github.com/LabMACS/24.25_Marrone/blob/main/image/imager.png)
+![imager](image/imager.png)
 
 Questa configurazione garantisce la corretta esecuzione delle funzionalità di registrazione, analisi e trasmissione dell’audio.
 
@@ -244,7 +229,6 @@ Il suono arriva esattamente dal centro (0-3 gradi)
 
 <h2 id="gantt">📊 Gantt</h2>
 
-![gantt](https://github.com/LabMACS/24.25_Marrone/blob/main/image/gantt.png)
 
 Il Diagramma di Gantt è stato utilizzato come punto di riferimento per l'intera durata del progetto, consentendo una gestione efficace delle attività e dei tempi di consegna.
   - Data di inizio progetto: Lunedì 14/01/2024

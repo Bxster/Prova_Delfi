@@ -34,7 +34,7 @@ int main (int argc, char *argv[]) {
         // set the default values for all of the args.
         arguments.name="RingServer";
         arguments.port=8888;
-        arguments.seconds=5;
+        arguments.seconds=2;
         // parse the cli arguments.so	
         argp_parse(&argp, argc, argv, 0, 0, &arguments);
 

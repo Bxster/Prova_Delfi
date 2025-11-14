@@ -28,7 +28,7 @@ def cross_spettro_robusto(left_channel, right_channel, sample_rate, max_tdoa_sam
     SIG2 = np.fft.rfft(right_channel, n=n)
     
     # Filtro frequenziale per eliminare rumori fuori banda
-    SIG1, SIG2 = frequency_filter(SIG1, SIG2, sample_rate, 5000, 800, n)
+    SIG1, SIG2 = frequency_filter(SIG1, SIG2, sample_rate, 3000, 25000, n)
     
     # Calcola il cross-spettro tra i due segnali
     R = SIG1 * np.conj(SIG2)
@@ -71,8 +71,8 @@ def frequency_filter(SIG1, SIG2, sample_rate, lowcut, highcut, n):
     freqs = np.fft.rfftfreq(n, d=1/sample_rate)
     
     # Azzeramento delle frequenze fuori banda
-    SIG1[(freqs > lowcut) | (freqs < highcut)] = 0
-    SIG2[(freqs > lowcut) | (freqs < highcut)] = 0
+    SIG1[(freqs < lowcut) | (freqs > highcut)] = 0
+    SIG2[(freqs < lowcut) | (freqs > highcut)] = 0
     
     return SIG1, SIG2
 

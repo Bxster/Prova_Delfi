@@ -12,8 +12,8 @@ import json
 import logging
 
 # Parametri per la prominenza spettrale
-PROMINENCE_BAND_MIN_HZ = 6000
-PROMINENCE_BAND_MAX_HZ = 24000
+PROMINENCE_BAND_MIN_HZ = 3000
+PROMINENCE_BAND_MAX_HZ = 25000
 PROMINENCE_THRESHOLD_DB = 12.0
 
 # Configurazione direzione

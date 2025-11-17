@@ -136,7 +136,7 @@ Quando entrambi i trigger si attivano:
 
 1. Il buffer stereo viene salvato temporaneamente
 2. Viene eseguito `direzione.py` per calcolare TDOA e angolo
-    - Percorso script: `/home/pi/Prova_Delfi/software/Ecolocalizzazione/direzione.py`
+    - Percorso script: `/home/pi/Prova_Delfi/software/V_TFLite/direzione.py`
 3. In base alla direzione, viene selezionato il canale più vicino
 4. La detection viene eseguita solo su quel canale
 

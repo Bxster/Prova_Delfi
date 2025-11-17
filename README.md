@@ -115,8 +115,7 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 │   └── wpa_supplicant.conf.txt
 ├── image/
 ├── software/
-│   ├── Ecolocalizzazione/
-│   │   └── Audio/
+│   ├── Audio/
 │   ├── V_TFLite/
 │   │   ├── det.sh
 │   │   ├── direzione.py
@@ -142,8 +141,6 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 │   │   ├── socketserver.c
 │   │   └── socketserver.h
 │   └── legacy/
-│       ├── converter.py
-│       └── cgi-bin/
 └── README.md
 ```
 
@@ -181,7 +178,7 @@ Sono disponibili diversi test per verificare il corretto funzionamento del modul
 
 1. Posizionarsi nella directory del progetto:
    ```bash
-   cd software/Ecolocalizzazione
+   cd software/V_TFLite
    ```
    
 2. Eseguire lo script `direzione.py` passando un file audio in input:
@@ -191,7 +188,7 @@ Sono disponibili diversi test per verificare il corretto funzionamento del modul
    
    Se non si dispone di un file audio personalizzato, utilizzare quelli presenti nella cartella `Audio/` (es: `0gradi.wav`):
    ```bash
-   python3 direzione.py 'Audio/0gradi.wav'
+   python3 direzione.py '../Audio/0gradi.wav'
    ```
 
 ### :mag_right: Risultati
@@ -219,8 +216,8 @@ Il suono arriva esattamente dal centro (0-3 gradi)
 
 - **TDOA su file**
   ```bash
-  cd /home/pi/Prova_Delfi/software/Ecolocalizzazione
-  python3 direzione.py 'Audio/0gradi.wav'
+  cd /home/pi/Prova_Delfi/software/V_TFLite
+  python3 direzione.py '/home/pi/Prova_Delfi/software/Audio/0gradi.wav'
   ```
 
 - **Log e output**

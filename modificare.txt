@@ -1,4 +1,4 @@
-dentro direzione.py lowcut, highcut
+dentro direzione.py lowcut, highcut, velocità suono
 
 dentro main.c arguments.seconds
 

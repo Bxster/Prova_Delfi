@@ -17,7 +17,7 @@ PROMINENCE_BAND_MAX_HZ = 25000
 PROMINENCE_THRESHOLD_DB = 12.0
 
 # Configurazione direzione
-DIREZIONE_SCRIPT = "/home/pi/Prova_Delfi/software/Ecolocalizzazione/direzione.py"
+DIREZIONE_SCRIPT = "/home/pi/Prova_Delfi/software/V_TFLite/direzione.py"
 
 
 class PowerTrigger:

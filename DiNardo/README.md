@@ -45,15 +45,41 @@ Questo modulo esegue un rilevamento in tempo reale a partire dall’audio di ing
   - Directory data per giorno: `LOG_DATE_FMT = '%Y%m%d'`
 
 ## Flusso di esecuzione (pipeline)
-1. `audio_capture.capture_stream(...)` apre uno stream di input (dispositivo selezionabile per indice o nome) e fornisce blocchi di durata `HALF_WINDOW`.
-2. `audio_capture.rolling_buffer(...)` costruisce una finestra di lunghezza `WINDOW_SEC`, che scorre di `HALF_WINDOW` (overlap 50%).
-3. `dsp.make_spectrogram(...)` calcola lo spettrogramma (finestra Hann, `NFFT`, `OVERLAP`) e ritorna l’ampiezza in dB e i vettori di frequenza.
-4. `dsp.spectrogram_to_image(...)` ritaglia la banda `[MIN_FREQ, MAX_FREQ]`, normalizza su [0, 255], inverte l’asse Y e ridimensiona a `IMG_WIDTH × IMG_HEIGHT` come immagine PIL in scala di grigi (`L`).
-5. Opzionale: `dsp.apply_sobel_vertical(image)` applica Sobel verticale (kernel 7), normalizza su [0, 255] e restituisce un’immagine `L`.
-6. `inference.TFLiteModel.predict(image)` converte l’immagine in `float32`, trasposta (H×W → W×H), aggiunge dimensioni batch e canale: forma `(1, W, H, 1)`, esegue `invoke()` e restituisce uno scalare di confidenza.
-7. Se la confidenza ≥ soglia, `logger.DetectionLogger.log(...)`:
-   - appende a `detections/<YYYYMMDD>/detections.log` la riga `timestamp\tpredizione`
-   - salva immagine PNG e audio WAV in `detections/<YYYYMMDD>/data/` con nome timestamp
+1. **Acquisizione e buffering**
+    - `audio_capture.capture_stream(...)` apre uno stream di input (selezionabile per indice/nome) a `SAMPLE_RATE_DEFAULT`, `CHANNELS`.
+    - Lo stream produce blocchi di durata `HALF_WINDOW` secondi (hop). Il `blocksize` in frame è circa `HALF_WINDOW * SAMPLE_RATE_DEFAULT`.
+    - `audio_capture.rolling_buffer(...)` mantiene un ring-buffer e costruisce finestre di lunghezza `WINDOW_SEC` con overlap 50% (passo = `HALF_WINDOW`).
+    - Ogni finestra contiene ~`WINDOW_SEC * SAMPLE_RATE_DEFAULT` campioni.
+
+2. **DSP: spettrogramma**
+    - `dsp.make_spectrogram(...)` calcola lo spettrogramma con finestra Hann, `NFFT` e `OVERLAP` (overlap fra frame interni allo spettrogramma, distinto dall’overlap temporale del buffering).
+    - Output: matrice di magnitudini e vettori `freqs`. Le magnitudini sono convertite in dB con offset numerico `+1e-12` per evitare `log(0)`.
+    - Le bande fuori interesse vengono escluse individuando gli indici di `freqs` compresi in `[MIN_FREQ, MAX_FREQ]`.
+
+3. **Imaging**
+    - `dsp.spectrogram_to_image(...)` effettua: crop in frequenza, normalizzazione per-finestra su [0,1], scaling a [0,255], inversione verticale per avere frequenze basse in basso.
+    - Ridimensiona a `IMG_WIDTH × IMG_HEIGHT` e restituisce un’immagine PIL in scala di grigi (`mode='L'`).
+
+4. **Filtro opzionale (Sobel verticale)**
+    - `dsp.apply_sobel_vertical(image)` evidenzia pattern verticali (tipici delle armoniche/pattern impulsivi), con kernel 7.
+    - L’uscita viene rinormalizzata su [0,255] preservando il tipo `L`.
+
+5. **Inferenza TFLite**
+    - `inference.TFLiteModel.predict(image)` prepara il tensore: converte in `float32`, trasposta H×W → W×H, aggiunge batch e canale: forma `(1, W, H, 1)`.
+    - Esegue `invoke()` e produce una confidenza (float scalare). I thread del runtime sono configurabili da CLI (`--num_threads`).
+
+6. **Decisione e logging**
+    - Se confidenza ≥ soglia (CLI `--threshold`, default `THRESHOLD_DEFAULT`), `logger.DetectionLogger.log(...)` salva:
+      - riga `timestamp\tconfidenza` in `detections/<YYYYMMDD>/detections.log` (formati da `TIMESTAMP_FMT`, `LOG_DATE_FMT`)
+      - PNG e WAV della finestra corrente in `detections/<YYYYMMDD>/data/` con lo stesso timestamp.
+
+7. **Cadenza temporale**
+    - Il ciclo principale rispetta la cadenza di `HALF_WINDOW`: a fine iterazione attende il tempo residuo per mantenere throughput costante (sliding a 50%).
+
+### Note operative
+- **Prestazioni**: `NFFT` maggiore migliora la risoluzione in frequenza ma aumenta il costo; `IMG_WIDTH/IMG_HEIGHT` impattano l’I/O del modello.
+- **Dispositivo audio**: selezionabile via `--device` (indice o nome). Verificare la compatibilità con sample rate elevati.
+- **Riproducibilità**: i file PNG/WAV e il log condividono lo stesso timestamp, utile per correlare i dati.
 
 ## Dettagli per file
 - `config.py`

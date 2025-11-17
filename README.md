@@ -116,10 +116,10 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 ├── image/
 ├── software/
 │   ├── Ecolocalizzazione/
-│   │   ├── Audio/
-│   │   └── direzione.py
+│   │   └── Audio/
 │   ├── V_TFLite/
 │   │   ├── det.sh
+│   │   ├── direzione.py
 │   │   ├── detector_v3_with_trigger.py
 │   │   ├── model.tflite
 │   │   ├── power_trigger.py

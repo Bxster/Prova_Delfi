@@ -228,10 +228,10 @@ Il suono arriva esattamente dal centro (0-3 gradi)
 
 
 Il Diagramma di Gantt è stato utilizzato come punto di riferimento per l'intera durata del progetto, consentendo una gestione efficace delle attività e dei tempi di consegna.
-  - Data di inizio progetto: Lunedì 14/01/2024
-  - Consegna finale: Mercoledì 18/12/2024 (coincidente con la presentazione della demo).
+  - Data di inizio progetto: 27/10/2025
+  - Consegna finale: 20/12/2025 (coincidente con la presentazione della demo).
 
-Durante il progetto, la programmazione è stata rispettata senza particolari ritardi, fatta eccezione per il Deliverable D3 (impermeabilità del tubo), la cui consegna è stata posticipata a causa di ritardi del fornitore.
+![gantt](image/gantt.png)
 
 <h2 id="tc">:clipboard: TC/TP</h2>
 

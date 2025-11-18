@@ -11,14 +11,7 @@ import subprocess
 import json
 import logging
 
-# Parametri per la prominenza spettrale
-PROMINENCE_BAND_MIN_HZ = 3000
-PROMINENCE_BAND_MAX_HZ = 25000
-PROMINENCE_THRESHOLD_DB = 12.0
-
-# Configurazione direzione
-DIREZIONE_SCRIPT = "/home/pi/Prova_Delfi/software/V_TFLite/direzione.py"
-
+from config import PROMINENCE_BAND_MIN_HZ, PROMINENCE_BAND_MAX_HZ, PROMINENCE_THRESHOLD_DB, DIREZIONE_SCRIPT
 
 class PowerTrigger:
     """

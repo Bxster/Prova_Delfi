@@ -235,92 +235,108 @@ Il Diagramma di Gantt è stato utilizzato come punto di riferimento per l'intera
 
 <h2 id="tc">:clipboard: TC/TP</h2>
 
-I seguenti test case valutano se il progetto soddisfa i requisiti e i KPI specificati, verificando il corretto funzionamento dei vari aspetti del sistema. Per ogni test, sono presentati la procedura, i criteri di accettazione e i risultati.
+Per convalidare il prototipo e il raggiungimento dei KPI definiti, sono state definite le seguenti procedure di test (Test Case). Ogni TC ha un ID univoco, un nome che descrive il test e i componenti principali che vengono messi alla prova.
 
 <div align="center">
 
-| ID       | Test da effettuare           | Componenti da testare                                             |
-|----------|------------------------------|-------------------------------------------------------------------|
-| 🟦 TC_1.1   | 🎯 Accuratezza campionamento | Segnale acquisito                                                |
-| 🟦 TC_1.2   | 🔇 Riduzione rumore          | Segnale acquisito                                                |
-| 🟩 TC_2.1   | 📏 Precisione distanza       | Codice                                                           |
-| 🟩 TC_2.2   | 📐 Precisione angolo         | Codice                                                           |
-| 🟨 TC_3.1   | 💧 Impermeabilità            | Sistema completo (IP68)                                          |
-| 🟨 TC_3.2   | ⚡ Stabilità elettronica     | Idrofoni<br> Preamplificatore<br> RPi Zero 2W<br> HiFiBerry DAC+ADC Pro<br> Powerbank |
+| **ID**    | **TC**                          | **Test da effettuare**                                        | **Componenti da testare**    |
+|:------|:----------------------------|:----------------------------------------------------------|:-------------------------|
+| TC1.1 | Accuratezza e Qualità Campionamento | Verifica della banda di frequenza e qualità del segnale acquisito. | Sistema di acquisizione  |
+| TC2.1 | Precisione Angolare         | Verifica dell'errore angolare calcolato dal sistema autonomo. | Codice                   |
+| TC2.2 | Accuratezza Rilevamento     | Verifica del rate di successi (TPR) e falsi allarmi (FPR) del modello AI. | Codice                   |
+| TC3.1 | Latenza Comunicazione       | Misura del tempo di reazione end-to-end.                  | Sistema Completo         |
+| TC3.2 | Distanza di funzionamento   | Misura della distanza di funzionamento massima testabile in assenza di ostacoli. | Sistema Completo         |
+| TC4.1 | Stabilità Operativa         | Verifica del funzionamento continuo e ininterrotto.       | Sistema Completo         |
+| TC4.2 | Integrità Strutturale       | Test di tenuta stagna del contenitore (IP68).             | Sistema Completo         |
 
 </div>
+---
+Di seguito vengono presentate le procedure di test dettagliate per ogni Test Case, inclusi i passaggi da eseguire (TP), i criteri di accettazione e lo spazio per i risultati.
 
-- 🟦 TC1.1: Accuratezza campionamento
-    - Obiettivo: Verificare la frequenza e la qualità del segnale rilevato.
-    - Test Procedure (TP):
-        1. Avviare la registrazione.
-        2. Riprodurre un segnale di test tra 10 kHz e 90 kHz.
-        3. Arrestare la registrazione.
-        4. Confrontare il segnale acquisito con il segnale originale.
-    - Criteri di accettazione: Il segnale acquisito deve riportare la stessa frequenza del segnale originale.
-    - Risultati: ✅ OK
+**TC1.1: Test di accuratezza e qualità del campionamento**
+- **Test per verificare la banda di frequenza e la qualità del segnale acquisito.**
+- **Test Procedures (TP):**
+  - TP1.1: Avviare la registrazione “Audio Recording".
+  - TP1.2: Riprodurre un segnale di test tra 5 kHz e 25 kHz da sorgente esterna.
+  - TP1.3: Arrestare la registrazione e analizzare il file .wav generato tramite analisi spettrale (FFT).
+  - TP1.4: Confrontare il segnale acquisito con il segnale originale emesso.
+- **Criteri di accettazione:** Il segnale acquisito deve riportare la stessa frequenza del segnale originale.
 
-- 🟦 TC1.2: Riduzione rumore
-    - Obiettivo: Verificare il corretto isolamento del segnale attraverso il filtraggio e l'analisi SNR.
-    - Test Procedure (TP):
-        1. Applicare un filtro passa-alto con una frequenza di taglio di 2 kHz per eliminare il rumore a bassa frequenza.
-        2. Calcolare l'SNR del segnale acquisito su una finestra di 2 ms.
-    - Criteri di accettazione: SNR > 5.25; isolamento segnali nell'intervallo 2 kHz - 96 kHz.
-    - Risultati: ✅ OK
+**TC2.1: Verifica della precisione angolare**
+- **Test per misurare l'errore angolare del sistema autonomo.**
+- **Test Procedures (TP):**
+  - TP1.1: Posizionare la sorgente sonora a 0° rispetto agli idrofoni.
+  - TP1.2: Emettere un segnale sonoro.
+  - TP1.3: Registrare l'angolo calcolato dal sistema.
+  - TP1.4: Ripetere il test per altre angolazioni (es. 45°, 90°, 135°, 180°).
+  - TP1.5: Calcolare la differenza media tra l'angolo reale e quello calcolato.
+- **Criteri di accettazione:** L'errore angolare medio deve essere minore del 10% rispetto alla vera posizione.
 
-- 🟩 TC2.1: Precisione distanza
-    - Obiettivo: Misurare la differenza media tra la distanza calcolata e reale con una sorgente sonora.
-    - Test Procedure (TP):
-        1. Posizionare una sorgente sonora a una distanza nota (es. 5 m) rispetto agli idrofoni.
-        2. Emettere un segnale sonoro.
-        3. Registrare la distanza calcolata dal sistema.
-        4. Ripetere il processo per distanze diverse (es. 10 m e 15 m).
-        5. Calcolare la differenza media tra le distanze reali e quelle calcolate.
-    - Criteri di accettazione: La differenza media deve essere < 10% della distanza reale.
-    - Risultati: ❌ KO (Non è stato possibile calcolare la distanza).
+**TC2.2: Verifica dell'accuratezza del rilevamento**
+- **Test per verificare l'efficacia del trigger AI.**
+- **Test Procedures (TP):**
+  - TP1.1: Utilizzare il setup del TC2.1. Preparare una sequenza di 20 segnali (10 fischi e 10 rumori ambientali).
+  - TP1.2: Avviare il sistema e riprodurre la sequenza di segnali.
+  - TP1.3: Analizzare i log per contare i rilevamenti corretti (True Positives) e i falsi allarmi (False Positives).
+- **Criteri di accettazione:** Il sistema deve rilevare correttamente almeno 9 dei 10 fischi (TPR > 85%) e generare non più di 1 falso allarme sui 10 rumori (FPR < 10%).
 
-- 🟩 TC2.2: Precisione angolo
-    - Obiettivo: Determinare l'angolo di arrivo del suono da una sorgente.
-    - Test Procedure (TP):
-      1. Posizionare la sorgente sonora a 0° rispetto agli idrofoni.
-      2. Emettere un segnale sonoro.
-      3. Registrare l'angolo calcolato dal sistema.
-      4. Ripetere il test per altre angolazioni (es. 45°, 90°, 135°, 180°).
-      5. Calcolare la differenza media tra l'angolo reale e quello calcolato.
-    - Criteri di accettazione: Errore angolare < 10% rispetto alla posizione reale.
-    - Risultati: ✅ OK
+**TC3.1: Misura della latenza di sistema**
+- **Test per verificare la reattività del sistema nel comunicare la presenza e la direzione di un delfino.**
+- **Test Procedures (TP):**
+  - TP1.1: Inviare un segnale sonoro al dispositivo.
+  - TP1.2: Il sistema esegue tutte le operazioni in automatico.
+  - TP1.3: Misurare il tempo necessario per completare questa sequenza. Ripetere 10 volte e calcolare la media.
+- **Criteri di accettazione:** La latenza media misurata deve essere inferiore a 2 s.
 
-- 🟨 TC3.1: Impermeabilità
-    - Obiettivo: Testare l’impermeabilità del dispositivo secondo lo standard IP68.
-    - Test Procedure (TP):
-      1. Posizionare il dispositivo sigillato in un acquario a una profondità di 0,2 metri per 60 minuti.
-      2. Immergere il dispositivo a 1 metro di profondità in una piscina per 60 minuti.
-      3. Rimuovere il dispositivo, aprirlo e verificare visivamente l'interno per segni di umidità.
-      4. Testare il funzionamento dei componenti elettronici (Raspberry Pi, HiFiBerry, idrofoni, ecc.).
-    - Criteri di accettazione: Nessuna infiltrazione d'acqua; piena funzionalità durante e dopo il test.
-    - Risultati: ✅ OK
+**TC3.2: Misura della distanza di funzionamento massima testabile in assenza di ostacoli**
+- **Test per verificare la massima distanza senza ostacoli che permette al sistema completo di funzionare correttamente.**
+- **Test Procedures (TP):**
+  - TP1.1: Inviare segnali sonoro al dispositivo.
+  - TP1.2: Ripetere l'esperimento a diverse distanze.
+- **Criteri di accettazione:** Il sistema deve funzionare correttamente con segnali ricevuti da massimo 16 m, poiché è la massima distanza testabile.
 
-- 🟨 TC3.2: Stabilità elettronica
-    - Obiettivo: Verificare la stabilità operativa del sistema per almeno 6 ore.
-    - Test Procedure (TP):
-      1. Collegare e accendere tutti i componenti del sistema.
-      2. Monitorare il sistema per 6 ore, verificando che non ci siano malfunzionamenti o interruzioni.
-    - Criteri di accettazione: Operatività stabile per 6 ore senza interruzioni.
-    - Risultati: ✅ OK
+**TC4.1: Test di stabilità operativa**
+- **Test per verificare la durata del funzionamento autonomo.**
+- **Test Procedures (TP):**
+  - TP1.1: Con il sistema alimentato da power bank, avviare la modalità autonoma.
+  - TP1.2: Lasciare il sistema in funzione per 3 ore consecutive.
+  - TP1.3: Al termine delle 3 ore, verificare che il sistema sia ancora operativo e reattivo.
+- **Criteri di accettazione:** Il sistema deve mantenere un'operatività stabile per almeno 3 ore, senza malfunzionamenti o interruzioni.
+
+**TC4.2: Test di impermeabilità**
+- **Test per verificare l'integrità strutturale del contenitore.**
+- **Test Procedures (TP):**
+  - TP1.1: Immergere il dispositivo contenente solo gli idrofoni sigillato in acqua a 0.2 metri di profondità per 60 minuti.
+  - TP1.2: Immergere il dispositivo contenente solo gli idrofoni sigillato in acqua a 1,5 metro di profondità per 30 minuti.
+  - TP1.3: Rimuovere il dispositivo, asciugarlo esternamente e ispezionare l'interno. Verificare se tutti i componenti elettronici all'interno funzionano correttamente eseguendo un test di acquisizione dati.
+  - TP1.4: Rieffettuare i punti TP1.1, 1.2, 1.3 con il dispositivo completo.
+- **Criteri di accettazione:** Nessuna infiltrazione d'acqua visibile nel contenitore. Il dispositivo deve essere completamente funzionante dopo il test.
 
 <h2 id="kpi">🎯 KPI</h2>
 
 Durante la pianificazione del progetto, sono stati definiti dei KPI (Key Performance Indicator) per garantire il successo del sistema. Tutti i KPI sono stati convalidati, anche se alcuni hanno richiesto più tempo a causa del ritardo nell'arrivo di alcuni materiali.
 
-| **KPI** | **Descrizione**                                                                                      | **Metrica**                                   | **Soglia**                      | **Risultato** |
-|---------|------------------------------------------------------------------------------------------------------|-----------------------------------------------|----------------------------------|---------------|
-| **1.1** | Accuratezza e qualità del campionamento del segnale acustico                                         | Frequenza di campionamento                    | 192 kHz                          | ✅ OK         |
-| **1.2** | Capacità di riduzione del rumore del segnale                                                         | Isolare le frequenze di interesse             | Frequenze di interesse (2 kHz - 96 kHz) | ✅ OK         |
-| **2.1** | Differenza media tra la distanza calcolata e la distanza reale delle sorgenti sonore                 | Mantenere questa differenza entro un limite   | Minore del 10%                   | ❌ KO         |
-| **2.2** | Accuratezza della determinazione dell'angolo di arrivo del suono                                     | Mantenere una accuratezza entro un limite     | Minore del 10%                   | ✅ OK         |
-| **3.1** | Resistenza all'Acqua del Contenitore                                                                 | L'involucro deve rispettare lo standard IP68  | IP68                             | ✅ OK         |
-| **3.2** | Durata della batteria in funzionamento continuo                                                      | Il sistema deve funzionare per almeno tot ore | Maggiore di 6 ore                | ✅ OK         |
+<div align="center">
 
+1.  **Accuratezza e Qualità Campionamento:** Efficacia del sistema nella conversione del segnale analogico in digitale
+2.  **Precisione Angolare:** L'errore tra l'angolo di provenienza reale della sorgente e l'angolo calcolato dal sistema autonomo
+3.  **Accuratezza Rilevamento:** Il sistema deve identificare correttamente un fischio di delfino quando presente
+4.  **Distanza di funzionamento senza ostacoli:** Il sistema deve funzionare in modo corretto nell'intero processo almeno
+5.  **Latenza Comunicazione:** Tempo totale tra l'arrivo di un suono e comunicazione del risultato (direzione e timestamp)
+6.  **Stabilità Operativa:** Il sistema deve funzionare in modo continuo e autonomo senza interruzioni
+7.  **Integrità Strutturale:** Deve essere garantita la protezione IP68, prevenendo infiltrazioni d'acqua
+
+| **KPI**   | **Descrizione**                       | **Metrica**                 | **Soglia**                      | **Risultato** |
+|:------|:----------------------------------|:------------------------|:----------------------------|:----------|
+| 1.1   | Accuratezza e Qualità Campionamento | Frequenza di campionamento | 192 kHz                     | ?         |
+| 2.1   | Precisione Angolare               | Errore angolare medio   | <10%                        | ?         |
+| 2.2   | Accuratezza Rilevamento           | True Positive Rate (TPR) | >85%                        | ?         |
+| 3.1   | Latenza Comunicazione             | Tempo end-to-end        | <2 s                        | ?         |
+| 3.2   | Distanza di funzionamento senza ostacoli | Distanza in metri testabile massima | <16 m                       | ?         |
+| 4.1   | Stabilità Operativa               | Durata funzionamento continuo | >3 h                        | ?         |
+| 4.2   | Integrità Strutturale             | Livello di protezione IP | IP68 (nessuna infiltrazione) | ?         |
+
+</div>
 
 <h3>📡 Campionamento del segnale</h3>
 
@@ -356,6 +372,6 @@ KPI 3.2: Stabilità elettronica e durata della batteria
 
 | Contributor Name      | GitHub                                  |
 |:----------------------|:----------------------------------------|
-| ⭐ **Scotini Matteo**  | [Click here](https://github.com/) |
-| ⭐ **De Ritis Riccardo**   | [Click here](https://github.com/RiccardoDR) |
-| ⭐ **Iannotti Andrea**   | [Click here](https://github.com/) |
+| ⭐ **Baldelli Gianluca**  | [Click here](https://github.com/Bxster) |
+| ⭐ **Guizani Kossay**   | [Click here](https://github.com/KOUSSAY4173) |
+| ⭐ **Ricci Ettore**   | [Click here](https://github.com/EttoreRii) |

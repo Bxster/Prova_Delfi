@@ -250,7 +250,7 @@ Per convalidare il prototipo e il raggiungimento dei KPI definiti, sono state de
 | TC4.2 | Integrità Strutturale       | Test di tenuta stagna del contenitore (IP68).             | Sistema Completo         |
 
 </div>
----
+
 Di seguito vengono presentate le procedure di test dettagliate per ogni Test Case, inclusi i passaggi da eseguire (TP), i criteri di accettazione e lo spazio per i risultati.
 
 **TC1.1: Test di accuratezza e qualità del campionamento**

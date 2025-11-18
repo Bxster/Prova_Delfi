@@ -316,8 +316,6 @@ Di seguito vengono presentate le procedure di test dettagliate per ogni Test Cas
 
 Durante la pianificazione del progetto, sono stati definiti dei KPI (Key Performance Indicator) per garantire il successo del sistema. Tutti i KPI sono stati convalidati, anche se alcuni hanno richiesto più tempo a causa del ritardo nell'arrivo di alcuni materiali.
 
-<div align="center">
-
 1.  **Accuratezza e Qualità Campionamento:** Efficacia del sistema nella conversione del segnale analogico in digitale
 2.  **Precisione Angolare:** L'errore tra l'angolo di provenienza reale della sorgente e l'angolo calcolato dal sistema autonomo
 3.  **Accuratezza Rilevamento:** Il sistema deve identificare correttamente un fischio di delfino quando presente
@@ -325,6 +323,8 @@ Durante la pianificazione del progetto, sono stati definiti dei KPI (Key Perform
 5.  **Latenza Comunicazione:** Tempo totale tra l'arrivo di un suono e comunicazione del risultato (direzione e timestamp)
 6.  **Stabilità Operativa:** Il sistema deve funzionare in modo continuo e autonomo senza interruzioni
 7.  **Integrità Strutturale:** Deve essere garantita la protezione IP68, prevenendo infiltrazioni d'acqua
+
+<div align="center">
 
 | **KPI**   | **Descrizione**                       | **Metrica**                 | **Soglia**                      | **Risultato** |
 |:------|:----------------------------------|:------------------------|:----------------------------|:----------|

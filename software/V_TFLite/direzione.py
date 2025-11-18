@@ -5,7 +5,7 @@ import json
 from scipy.io import wavfile
 from scipy.signal import butter, filtfilt
 
-from config import MIN_FREQ, MAX_FREQ, SPEED_OF_SOUND, MICROPHONE_DISTANCE
+from config import MIN_FREQ, MAX_FREQ, SPEED_OF_SOUND, MICROPHONE_DISTANCE, ENABLE_UART, UART_PORT, UART_BAUD
 
 def cross_spettro_robusto(left_channel, right_channel, sample_rate, max_tdoa_samples):
     """
@@ -95,7 +95,8 @@ def main():
 
         # Verifica che il file sia stereo
         if len(data.shape) != 2 or data.shape[1] != 2:
-            print("Il file WAV deve essere stereo con due canali.")
+            print("Errore: Il file WAV deve essere stereo con due canali.")
+            return
 
         left_channel = data[:, 0]  # Estrai il canale sinistro
         right_channel = data[:, 1]  # Estrai il canale destro
@@ -136,11 +137,15 @@ def main():
         # Converti il dizionario in stringa JSON
         result_json = json.dumps(result_2)
 
-        # Invio del JSON tramite UART
-        uart = serial.Serial('/dev/serial0', baudrate=9600, timeout=1)
-        uart.write(result_json.encode())
-
         print(f"{result}\n")
+
+        # Invio del JSON tramite UART
+        if ENABLE_UART:
+            try:
+                uart = serial.Serial(UART_PORT, baudrate=UART_BAUD, timeout=1)
+                uart.write(result_json.encode())
+            except Exception as e:
+                print(f"UART non disponibile o errore invio: {e}")
     except Exception as e:
         print("Rilevazione fallita")
         print(f"Errore: {e}")

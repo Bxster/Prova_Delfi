@@ -16,9 +16,7 @@ import sys
 # Importa il modulo power trigger
 from power_trigger import PowerTrigger, run_tdoa_analysis, get_nearest_channel
 
-serverName = "127.0.0.1"
-serverPort = 12001
-DETECTION_THRESHOLD = 0.5
+from config import RING_HOST, SERVER_PORT_BASE, DETECTION_THRESHOLD
 
 # Funzione per ottenere il nome del file di log
 def get_log_file_path():
@@ -73,19 +71,19 @@ def get_sample():
 
 async def send_wavefile(num, wave, bitrate, result):
     """Invia il file audio al server per la detection."""
-    global serverName
-    global serverPort
+    global RING_HOST
+    global SERVER_PORT_BASE
     
     try:
         data_size = wave.itemsize
         wave_content = wave.tobytes()
-        port = serverPort + int(num)
+        port = SERVER_PORT_BASE + int(num)
         
         with open(log_file_path, "a") as log_file:
             log_file.write(f"CONNECTION PORT: {port}\n")
         
         file_size = len(wave_content)
-        reader, writer = await asyncio.open_connection(serverName, port)
+        reader, writer = await asyncio.open_connection(RING_HOST, port)
         
         writer.write(f"{bitrate},{file_size},{data_size}".encode())
         await writer.drain()

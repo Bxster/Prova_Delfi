@@ -5,6 +5,8 @@ import json
 from scipy.io import wavfile
 from scipy.signal import butter, filtfilt
 
+from config import MIN_FREQ, MAX_FREQ, SPEED_OF_SOUND, MICROPHONE_DISTANCE
+
 def cross_spettro_robusto(left_channel, right_channel, sample_rate, max_tdoa_samples):
     """
     Calcola la differenza temporale di arrivo (TDOA) tra due segnali audio (stereo).
@@ -28,7 +30,7 @@ def cross_spettro_robusto(left_channel, right_channel, sample_rate, max_tdoa_sam
     SIG2 = np.fft.rfft(right_channel, n=n)
     
     # Filtro frequenziale per eliminare rumori fuori banda
-    SIG1, SIG2 = frequency_filter(SIG1, SIG2, sample_rate, 3000, 25000, n)
+    SIG1, SIG2 = frequency_filter(SIG1, SIG2, sample_rate, MIN_FREQ, MAX_FREQ, n)
     
     # Calcola il cross-spettro tra i due segnali
     R = SIG1 * np.conj(SIG2)
@@ -97,11 +99,9 @@ def main():
 
         left_channel = data[:, 0]  # Estrai il canale sinistro
         right_channel = data[:, 1]  # Estrai il canale destro
-        speed_of_sound = 330  # Velocità del suono in aria 330, 1460 (m/s)
-        microphone_distance = 0.46  # Distanza tra i microfoni (metri)
 
         # Calcola il massimo TDOA teorico in campioni
-        max_tdoa_samples = int((microphone_distance / speed_of_sound) * sample_rate)
+        max_tdoa_samples = int((MICROPHONE_DISTANCE / SPEED_OF_SOUND) * sample_rate)
 
         # Calcola la frequenza di Nyquist
         nyquist = 0.5 * sample_rate
@@ -118,7 +118,7 @@ def main():
         tdoa = cross_spettro_robusto(left_channel, right_channel, sample_rate, max_tdoa_samples)
         
         # Calcola l'angolo di provenienza del suono
-        angle = np.arcsin(tdoa * speed_of_sound / microphone_distance)
+        angle = np.arcsin(tdoa * SPEED_OF_SOUND / MICROPHONE_DISTANCE)
         angle_degrees = np.degrees(angle)
         print(f"Audio: {file_wav}")
 

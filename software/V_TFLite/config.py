@@ -17,7 +17,7 @@ PROMINENCE_THRESHOLD_DB = 12.0
 # --- TDOA / Direction ---
 TDOA_TIMEOUT_SEC = 10
 SPEED_OF_SOUND = 1460 # Velocità del suono in aria 330, in acqua 1460 (m/s)
-MICROPHONE_DISTANCE = 0.46
+MICROPHONE_DISTANCE = 0.46 # Distanza tra i microfoni (metri)
 HIGH_PASS_CUTOFF_HZ = 1000
 UART_PORT = "/dev/serial0"
 UART_BAUD = 9600

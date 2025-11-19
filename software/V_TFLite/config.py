@@ -27,7 +27,7 @@ ENABLE_UART = True # altrimenti False
 RING_HOST = "127.0.0.1"
 RING_PORT = 8888
 SERVER_PORT_BASE = 12001
-SERVER_PORTS = [12001, 12002, 12003]
+# SERVER_PORTS = [12001, 12002, 12003]
 
 # --- Detection threshold (current pipeline) ---
 DETECTION_THRESHOLD = 0.5

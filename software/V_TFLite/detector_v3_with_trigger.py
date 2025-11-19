@@ -12,6 +12,7 @@ import logging
 import time
 import os
 import sys
+from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW
 
 # Importa il modulo power trigger
 from power_trigger import PowerTrigger, run_tdoa_analysis, get_nearest_channel
@@ -34,12 +35,10 @@ log_file_path = get_log_file_path()
 
 def get_sample():
     """Ottiene i campioni audio dai due canali."""
-    ring_host = "127.0.0.1"
-    ring_port = 8888
     size_of_float = 4
     
     with socket(AF_INET, SOCK_STREAM) as s:
-        s.connect((ring_host, ring_port))
+        s.connect((RING_HOST, RING_PORT))
         s.sendall(b"nframes")
         nframes = int(s.recv(256).decode("utf8").split("\n")[0])
         s.sendall(b"len")
@@ -120,25 +119,33 @@ def extract_blocks(channel, br, nsec=0.2, window_size=2048):
     Returns:
         tuple: (blk1, blk2, blk3)
     """
-    i = 0
-    blk1 = channel[int(i * br * nsec):int((i * br * nsec) + br * nsec * 3)]
-    i += 1
-    blk2 = channel[int(i * br * nsec):int((i * br * nsec) + br * nsec * 3)]
-    i += 1
-    blk3 = channel[int(i * br * nsec):int((i * br * nsec) + br * nsec * 3)]
-    
+    # Align to 0.8s window with 0.4s hop (instead of previous ~0.6s central)
+    window_sec = 0.8
+    hop_sec = 0.4
+    w = int(br * window_sec)
+    h = int(br * hop_sec)
+    start0 = 0
+    end0 = start0 + w
+    start1 = h
+    end1 = start1 + w
+    start2 = 2 * h
+    end2 = start2 + w
+    # Clamp to available length
+    L = len(channel)
+    blk1 = channel[max(0, start0):min(L, end0)]
+    blk2 = channel[max(0, start1):min(L, end1)]
+    blk3 = channel[max(0, start2):min(L, end2)]
+
     return blk1, blk2, blk3
 
 
-async def perform_detection(channel, br):
+async def perform_detection_block(block, br):
     """
-    Esegue la detection su un canale specifico inviando un singolo blocco al task server.
+    Esegue la detection inviando un singolo blocco al task server.
     Ritorna la risposta grezza del server (bytes).
     """
-    blk1, blk2, blk3 = extract_blocks(channel, br)
     results = [None]
-    # Usa il blocco centrale (blk2) per una finestra rappresentativa
-    await send_wavefile(0, blk2, br, results)
+    await send_wavefile(0, block, br, results)
     return results[0]
 
 
@@ -150,12 +157,26 @@ async def main_loop_with_trigger():
         # Inizializza il power trigger
         br, _, _ = get_sample()
         trigger = PowerTrigger(br, log_file_path=log_file_path)
+        # Rolling tails (last HALF_WINDOW seconds) per canale per allineare hop=HALF_WINDOW
+        prev_left_tail = np.array([], dtype=np.float32)
+        prev_right_tail = np.array([], dtype=np.float32)
         
         with open(log_file_path, "a") as log_file:
             log_file.write("=== Starting detector with power trigger ===\n")
         
         while True:
             br, left_channel, right_channel = get_sample()
+            # Costruisce finestre rolling 0.8s con hop 0.4s usando le code precedenti
+            w = int(br * WINDOW_SEC)
+            h = int(br * HALF_WINDOW)
+            # LEFT
+            eff_left = left_channel if prev_left_tail.size == 0 else np.concatenate([prev_left_tail, left_channel])
+            detect_left_block = eff_left[-w:] if eff_left.size >= w else eff_left
+            prev_left_tail = eff_left[-h:] if eff_left.size >= h else eff_left
+            # RIGHT
+            eff_right = right_channel if prev_right_tail.size == 0 else np.concatenate([prev_right_tail, right_channel])
+            detect_right_block = eff_right[-w:] if eff_right.size >= w else eff_right
+            prev_right_tail = eff_right[-h:] if eff_right.size >= h else eff_right
             
             # Esegui il power trigger
             trigger_result = trigger.process_stereo_buffer(left_channel, right_channel)
@@ -194,11 +215,11 @@ async def main_loop_with_trigger():
                         left_channel, right_channel, tdoa_result['direction']
                     )
                     
-                    # Esegui la detection sul canale più vicino
+                    # Esegui la detection sul canale più vicino usando la finestra rolling
                     if tdoa_result['direction'].lower() in ['sinistra', 'left']:
-                        resp = await perform_detection(left_channel, br)
+                        resp = await perform_detection_block(detect_left_block, br)
                     else:
-                        resp = await perform_detection(right_channel, br)
+                        resp = await perform_detection_block(detect_right_block, br)
 
                     # Applica la soglia su un unico score
                     if resp is not None:
@@ -221,7 +242,7 @@ async def main_loop_with_trigger():
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Left trigger only, detecting on left channel\n")
                 
-                resp = await perform_detection(left_channel, br)
+                resp = await perform_detection_block(detect_left_block, br)
                 if resp is not None:
                     try:
                         detection = float(resp.decode().strip())
@@ -239,7 +260,7 @@ async def main_loop_with_trigger():
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Right trigger only, detecting on right channel\n")
                 
-                resp = await perform_detection(right_channel, br)
+                resp = await perform_detection_block(detect_right_block, br)
                 if resp is not None:
                     try:
                         detection = float(resp.decode().strip())

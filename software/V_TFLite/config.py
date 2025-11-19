@@ -30,7 +30,7 @@ SERVER_PORT_BASE = 12001
 # SERVER_PORTS = [12001, 12002, 12003]
 
 # --- Detection threshold (current pipeline) ---
-DETECTION_THRESHOLD = 0.5
+DETECTION_THRESHOLD = 0.7
 
 # --- DiNardo-aligned DSP / windowing (for future integration) ---
 SAMPLE_RATE_DEFAULT = 192000
@@ -42,7 +42,7 @@ MIN_FREQ = 5000
 MAX_FREQ = 25000
 NFFT = 512
 OVERLAP = 0.5
-THRESHOLD_DEFAULT = 0.9
+# THRESHOLD_DEFAULT = 0.9
 
 # --- Logger formats (DiNardo style) ---
 TIMESTAMP_FMT = "%Y%m%d-%H%M%S.%f"

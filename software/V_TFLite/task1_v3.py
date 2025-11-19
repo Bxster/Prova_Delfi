@@ -73,47 +73,11 @@ def plotNicolas(spectrogram, fs, block_size, window_size=2048, min_freq=6000, ma
     return image
 
 def compute(wave, br):
-    i = 0  # numero di spezzone iniziale
-    nsec = 0.2  # spezzone da 0.2 secondi
-    # preparo i 3 spezzoni
-    blk1 = wave[int(i * br * nsec):int((i + 1) * br * nsec) + int(window_size / 2)]
-    i = i + 1
-    blk2 = wave[int(i * br * nsec) - int(window_size / 2):int((i + 1) * br * nsec) + int(window_size / 2)]
-    i = i + 1
-    blk3 = wave[int(i * br * nsec) - int(window_size / 2):int((i + 1) * br * nsec)]
-    # ----------- Generazione spettrogrammi in 3 sub-blocchi ------------ #
-    s1 = spectrogramNicolas(blk1, br, window_size, int(window_size / 2))
-    s2 = spectrogramNicolas(blk2, br, window_size, int(window_size / 2))
-    s3 = spectrogramNicolas(blk3, br, window_size, int(window_size / 2))
-    # ----------- Combino i 3 spettrogrammi in uno solo ------------ #
-    s = np.hstack((s1, s2, s3))
-    # ----------- Renderizzo l'immagine dello spettrogramma ------------ #
-    im = plotNicolas(s, br, len(s), rescale=0)
-    
-    # ----------- Preparo l'immagine per l'interrogazione della IA ------------ #
-    im = im.resize((224, 224))  # Resize if needed
-    image = np.array(im).transpose()# Convert to NumPy array
-    
-    #Creazuibe di un'immagine in scala di grigi
-    gray_image = np.mean(image, axis=0, keepdims=True)
-    # ----------- Interrogazione della IA con TensorFlow Lite ------------ #
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-    
-    expected_input_shape = input_details[0]['shape']
-    
-    print("Image shape before reshape:", image.shape)
-    print("Expected input shape:", expected_input_shape)
-    print("Gray image shape:", gray_image.shape)
-    print("Input tensor shape expected by the model:", input_details[0]['shape'])
-    gray_image = gray_image.transpose((1,2,0)) #Trasposta per adattare la forma corretta
-    gray_image = gray_image.reshape((1, 224, 224, 1)).astype(np.float32)
-    
-    interpreter.set_tensor(input_details[0]['index'], gray_image)
-    interpreter.invoke()
-
-    yApp_lite = interpreter.get_tensor(output_details[0]['index'])
-    return yApp_lite
+    from .dinardo_adapter import score_from_mono
+    # Usa direttamente l'adapter DiNardo sul blocco mono ricevuto
+    score = score_from_mono(wave.astype(np.float32), br)
+    # Manteniamo la compatibilità con il codice chiamante restituendo un array comprimibile
+    return np.array([score], dtype=np.float32)
 
 
 async def handle_client(reader, writer):

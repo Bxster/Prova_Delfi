@@ -130,21 +130,16 @@ def extract_blocks(channel, br, nsec=0.2, window_size=2048):
     return blk1, blk2, blk3
 
 
-async def perform_detection(channel, br, results, block_indices):
+async def perform_detection(channel, br):
     """
-    Esegue la detection su un canale specifico.
-    
-    Args:
-        channel (numpy.ndarray): Canale audio
-        br (int): Bitrate/sample rate
-        results (list): Lista per memorizzare i risultati
-        block_indices (list): Indici dei blocchi da processare
+    Esegue la detection su un canale specifico inviando un singolo blocco al task server.
+    Ritorna la risposta grezza del server (bytes).
     """
     blk1, blk2, blk3 = extract_blocks(channel, br)
-    blocks = [blk1, blk2, blk3]
-    
-    tasks = [send_wavefile(idx, blocks[idx], br, results) for idx in block_indices]
-    await asyncio.gather(*tasks)
+    results = [None]
+    # Usa il blocco centrale (blk2) per una finestra rappresentativa
+    await send_wavefile(0, blk2, br, results)
+    return results[0]
 
 
 async def main_loop_with_trigger():
@@ -178,8 +173,6 @@ async def main_loop_with_trigger():
                 await asyncio.sleep(1)
                 continue
             
-            results = [None] * 3
-            
             if trigger_result['action'] == 'tdoa':
                 # Entrambi i trigger attivati: esegui TDOA
                 with open(log_file_path, "a") as log_file:
@@ -203,16 +196,14 @@ async def main_loop_with_trigger():
                     
                     # Esegui la detection sul canale più vicino
                     if tdoa_result['direction'].lower() in ['sinistra', 'left']:
-                        await perform_detection(left_channel, br, results, [0, 1, 2])
+                        resp = await perform_detection(left_channel, br)
                     else:
-                        await perform_detection(right_channel, br, results, [0, 1, 2])
+                        resp = await perform_detection(right_channel, br)
 
-                    # Calcola la media e applica la soglia
-                    if all(r is not None for r in results):
+                    # Applica la soglia su un unico score
+                    if resp is not None:
                         try:
-                            detection = (float(results[0].decode().strip()) +
-                                        float(results[1].decode().strip()) +
-                                        float(results[2].decode().strip())) / 3
+                            detection = float(resp.decode().strip())
                             with open(log_file_path, "a") as log_file:
                                 log_file.write(f"Detection: {detection}\n")
                             if detection >= DETECTION_THRESHOLD:
@@ -220,7 +211,7 @@ async def main_loop_with_trigger():
                                 wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
                         except Exception as e:
                             with open(log_file_path, "a") as log_file:
-                                log_file.write(f"Error parsing detection results: {e}\n")
+                                log_file.write(f"Error parsing detection result: {e}\n")
                 else:
                     with open(log_file_path, "a") as log_file:
                         log_file.write("TDOA analysis failed\n")
@@ -230,12 +221,10 @@ async def main_loop_with_trigger():
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Left trigger only, detecting on left channel\n")
                 
-                await perform_detection(left_channel, br, results, [0, 1, 2])
-                if all(r is not None for r in results):
+                resp = await perform_detection(left_channel, br)
+                if resp is not None:
                     try:
-                        detection = (float(results[0].decode().strip()) +
-                                    float(results[1].decode().strip()) +
-                                    float(results[2].decode().strip())) / 3
+                        detection = float(resp.decode().strip())
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:
@@ -243,19 +232,17 @@ async def main_loop_with_trigger():
                             wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
-                            log_file.write(f"Error parsing detection results: {e}\n")
+                            log_file.write(f"Error parsing detection result: {e}\n")
             
             elif trigger_result['action'] == 'right_only':
                 # Solo il trigger destro attivato
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Right trigger only, detecting on right channel\n")
                 
-                await perform_detection(right_channel, br, results, [0, 1, 2])
-                if all(r is not None for r in results):
+                resp = await perform_detection(right_channel, br)
+                if resp is not None:
                     try:
-                        detection = (float(results[0].decode().strip()) +
-                                    float(results[1].decode().strip()) +
-                                    float(results[2].decode().strip())) / 3
+                        detection = float(resp.decode().strip())
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:
@@ -263,7 +250,7 @@ async def main_loop_with_trigger():
                             wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
-                            log_file.write(f"Error parsing detection results: {e}\n")
+                            log_file.write(f"Error parsing detection result: {e}\n")
             await asyncio.sleep(1)
     
     except Exception as e:

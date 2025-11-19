@@ -11,7 +11,7 @@ import subprocess
 import json
 import logging
 
-from config import PROMINENCE_BAND_MIN_HZ, PROMINENCE_BAND_MAX_HZ, PROMINENCE_THRESHOLD_DB, DIREZIONE_SCRIPT
+from config import PROMINENCE_BAND_MIN_HZ, PROMINENCE_BAND_MAX_HZ, PROMINENCE_THRESHOLD_DB, DIREZIONE_SCRIPT, TDOA_TIMEOUT_SEC
 
 class PowerTrigger:
     """
@@ -185,7 +185,7 @@ def run_tdoa_analysis(wav_file_path):
             ["python3", DIREZIONE_SCRIPT, wav_file_path],
             text=True,
             capture_output=True,
-            timeout=10
+            timeout=TDOA_TIMEOUT_SEC
         )
         
         # Tenta di parsare l'output JSON se disponibile

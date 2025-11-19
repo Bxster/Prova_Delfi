@@ -5,7 +5,7 @@ import json
 from scipy.io import wavfile
 from scipy.signal import butter, filtfilt
 
-from config import MIN_FREQ, MAX_FREQ, SPEED_OF_SOUND, MICROPHONE_DISTANCE, ENABLE_UART, UART_PORT, UART_BAUD
+from config import MIN_FREQ, MAX_FREQ, SPEED_OF_SOUND, MICROPHONE_DISTANCE, ENABLE_UART, UART_PORT, UART_BAUD, HIGH_PASS_CUTOFF_HZ
 
 def cross_spettro_robusto(left_channel, right_channel, sample_rate, max_tdoa_samples):
     """
@@ -107,7 +107,7 @@ def main():
         # Calcola la frequenza di Nyquist
         nyquist = 0.5 * sample_rate
         # Normalizza la frequenza di taglio rispetto alla frequenza di Nyquist
-        normal_cutoff = 1000 / nyquist
+        normal_cutoff = HIGH_PASS_CUTOFF_HZ / nyquist
         # Progetta il filtro passa alto usando il filtro di Butterworth
         b, a = butter(4, normal_cutoff, btype='high', analog=False)
         

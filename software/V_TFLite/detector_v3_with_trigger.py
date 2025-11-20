@@ -12,18 +12,18 @@ import logging
 import time
 import os
 import sys
-from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW
 
 # Importa il modulo power trigger
 from power_trigger import PowerTrigger, run_tdoa_analysis, get_nearest_channel
 
-from config import RING_HOST, SERVER_PORT_BASE, DETECTION_THRESHOLD
+from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, LOG_FILE_PATH, DETECTIONS_DIR
 
 # Funzione per ottenere il nome del file di log
 def get_log_file_path():
     date_str = time.strftime("%Y-%m-%d_%H:%M:%S")
-    log_file_path = f"/home/pi/data/detection_log.txt"
-    
+    log_file_path = LOG_FILE_PATH
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
     if not os.path.exists(log_file_path):
         with open(log_file_path, "w") as log_file:
             log_file.write("Detection Log Created on: {}\n\n".format(date_str))
@@ -46,7 +46,6 @@ def get_sample():
         s.sendall(b"rate")
         samplerate = int(s.recv(256).decode('utf8').split("\n")[0])
         s.sendall(b"seconds")
-        seconds = int(s.recv(256).decode('utf8').split("\n")[0])
         blocksize = size_of_float * nframes * 2
         s.sendall(b"dump")
         
@@ -106,37 +105,7 @@ async def send_wavefile(num, wave, bitrate, result):
             log_file.write(f"ERRORE send_wavefile: {e}\n")
 
 
-def extract_blocks(channel, br, nsec=0.2, window_size=2048):
-    """
-    Estrae 3 blocchi dal canale audio.
     
-    Args:
-        channel (numpy.ndarray): Canale audio
-        br (int): Bitrate/sample rate
-        nsec (float): Durata di ogni blocco in secondi
-        window_size (int): Dimensione della finestra
-        
-    Returns:
-        tuple: (blk1, blk2, blk3)
-    """
-    # Align to 0.8s window with 0.4s hop (instead of previous ~0.6s central)
-    window_sec = 0.8
-    hop_sec = 0.4
-    w = int(br * window_sec)
-    h = int(br * hop_sec)
-    start0 = 0
-    end0 = start0 + w
-    start1 = h
-    end1 = start1 + w
-    start2 = 2 * h
-    end2 = start2 + w
-    # Clamp to available length
-    L = len(channel)
-    blk1 = channel[max(0, start0):min(L, end0)]
-    blk2 = channel[max(0, start1):min(L, end1)]
-    blk3 = channel[max(0, start2):min(L, end2)]
-
-    return blk1, blk2, blk3
 
 
 async def perform_detection_block(block, br):
@@ -228,7 +197,8 @@ async def main_loop_with_trigger():
                             with open(log_file_path, "a") as log_file:
                                 log_file.write(f"Detection: {detection}\n")
                             if detection >= DETECTION_THRESHOLD:
-                                timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
+                                os.makedirs(DETECTIONS_DIR, exist_ok=True)
+                                timestr = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d %H:%M:%S") + ".wav")
                                 wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
                         except Exception as e:
                             with open(log_file_path, "a") as log_file:
@@ -249,7 +219,8 @@ async def main_loop_with_trigger():
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:
-                            timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
+                            os.makedirs(DETECTIONS_DIR, exist_ok=True)
+                            timestr = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d %H:%M:%S") + ".wav")
                             wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
@@ -267,7 +238,8 @@ async def main_loop_with_trigger():
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:
-                            timestr = "/home/pi/data/Detections/" + time.strftime("%Y-%m-%d %H:%M:%S") + ".wav"
+                            os.makedirs(DETECTIONS_DIR, exist_ok=True)
+                            timestr = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d %H:%M:%S") + ".wav")
                             wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:

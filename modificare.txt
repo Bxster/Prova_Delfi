@@ -1,8 +1,0 @@
-dentro direzione.py lowcut, highcut, velocità suono
-
-dentro main.c arguments.seconds
-
-dentro power_trigger.py PROMINENCE_BAND_MIN_HZ, PROMINENCE_BAND_MAX_HZ
-
-dentro taskX_v3.py la main ultima
-

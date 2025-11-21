@@ -15,7 +15,7 @@ PROMINENCE_BAND_MAX_HZ = 27000
 PROMINENCE_THRESHOLD_DB = 12.0
 
 # --- TDOA / Direction ---
-TDOA_TIMEOUT_SEC = 10
+TDOA_TIMEOUT_SEC = 4
 SPEED_OF_SOUND = 1460 # Velocità del suono in aria 330, in acqua 1460 (m/s)
 MICROPHONE_DISTANCE = 0.46 # Distanza tra i microfoni (metri)
 HIGH_PASS_CUTOFF_HZ = 1000

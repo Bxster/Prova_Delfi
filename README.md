@@ -122,12 +122,11 @@ Di seguito sono elencati i componenti hardware necessari per la realizzazione de
 │   │   ├── detector_v3_with_trigger.py
 │   │   ├── model.tflite
 │   │   ├── power_trigger.py
+│   │   ├── test_power_trigger.py
 │   │   ├── run.sh
 │   │   ├── start_jack_ring_server.sh
 │   │   ├── stop_all.sh
-│   │   ├── task1_v3.py
-│   │   ├── task2_v3.py
-│   │   └── task3_v3.py
+│   │   └── task1_v3.py
 │   ├── jack-ring-socket-server/
 │   │   ├── Makefile
 │   │   ├── jack-ring-socket-server
@@ -191,6 +190,16 @@ Sono disponibili diversi test per verificare il corretto funzionamento del modul
    python3 direzione.py '../Audio/0gradi.wav'
    ```
 
+3. Test rapido Power Trigger (senza ring server):
+   ```bash
+   # WAV stereo
+   python3 test_power_trigger.py --stereo '../Audio/centro.wav'
+   # Oppure due WAV mono
+   python3 test_power_trigger.py --left '../Audio/left.wav' --right '../Audio/right.wav'
+   ```
+   Lo script usa i parametri del file di configurazione e stampa su terminale
+   la prominenza e l'azione risultante (left_only/right_only/tdoa/none).
+
 ### :mag_right: Risultati
 
 Il risultato della localizzazione sarà visualizzato nel terminale, ad esempio:
@@ -214,6 +223,26 @@ Il suono arriva esattamente dal centro (0-3 gradi)
   chmod +x /home/pi/Prova_Delfi/software/V_TFLite/stop_all.sh
   ```
 
+- **Avvio pipeline completa (IPC su socket, 1 task)**
+  ```bash
+  # 1) Avvia ring server (consigliato seconds ~0.5–0.8 per hop=0.4s)
+  cd /home/pi/Prova_Delfi/software/jack-ring-socket-server
+  make
+  ./jack-ring-socket-server --port 8888 --seconds 0.8
+
+  # 2) Avvia il task server TFLite (porta 12001)
+  cd /home/pi/Prova_Delfi/software/V_TFLite
+  python3 task1_v3.py
+
+  # 3) Avvia il detector con Power Trigger + TDOA + rolling window (0.8s, hop 0.4s)
+  cd /home/pi/Prova_Delfi/software/V_TFLite
+  python3 detector_v3_with_trigger.py
+  ```
+  Il detector legge dallo stream stereo del ring server, applica il Power Trigger
+  (banda/soglia da config), opzionalmente esegue TDOA, sceglie il canale e invia
+  un blocco mono al task server per ottenere lo score. Se lo score supera la soglia,
+  salva un WAV stereo in `Detections`.
+
 - **TDOA su file**
   ```bash
   cd /home/pi/Prova_Delfi/software/V_TFLite
@@ -223,6 +252,27 @@ Il suono arriva esattamente dal centro (0-3 gradi)
 - **Log e output**
   - Log detector: `/home/pi/data/detection_log.txt`
   - Detections WAV: `/home/pi/data/Detections/`
+
+<h2 id="config">⚙️ Configurazione (software/V_TFLite/config.py)</h2>
+
+- **Networking/IPC**
+  - `RING_HOST`, `RING_PORT`: ring server TCP (default 127.0.0.1:8888)
+  - `SERVER_PORT_BASE`: task server base (default 12001)
+- **Finestra temporale**
+  - `WINDOW_SEC = 0.8`, `HALF_WINDOW = 0.4`: rolling window e hop usati dal detector
+- **Power Trigger**
+  - `PROMINENCE_BAND_MIN_HZ`, `PROMINENCE_BAND_MAX_HZ`: banda d’analisi (es. 4–26 kHz)
+  - `PROMINENCE_THRESHOLD_DB`: soglia di attivazione (es. 20 dB; aumentare per ridurre falsi)
+- **TDOA/Direzione**
+  - `TDOA_TIMEOUT_SEC`: timeout analisi `direzione.py`
+  - `HIGH_PASS_CUTOFF_HZ`: cutoff HPF applicato in `direzione.py`
+  - `SPEED_OF_SOUND`, `MICROPHONE_DISTANCE`, `UART_*`, `ENABLE_UART`
+- **DSP/Immagine (task)**
+  - `IMG_WIDTH`, `IMG_HEIGHT`, `MIN_FREQ`, `MAX_FREQ`, `NFFT`, `OVERLAP`
+- **Soglia detection modello**
+  - `DETECTION_THRESHOLD`: soglia sullo score del modello TFLite
+- **Path**
+  - `LOG_FILE_PATH`, `DETECTIONS_DIR`, `MODEL_PATH` (il task usa attualmente un path di default su `/home/pi/V_TFLite/model.tflite`)
 
 <h2 id="gantt">📊 Gantt</h2>
 

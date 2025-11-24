@@ -1,5 +1,6 @@
 #!/bin/bash
-echo "il file è partito" >> /home/pi/flag.txt
+APP_DIR="/home/pi/Prova_Delfi/app"
+echo "run.sh avviato" >> /home/pi/flag.txt
 # Imposta i parametri della HiFiBerry
 sudo amixer sset "ADC Left Input" "VINL1[SE]"
 sudo amixer sset "ADC Right Input" "VINR1[SE]"
@@ -19,9 +20,9 @@ sudo /usr/bin/jackd -r -dalsa -dhw:$hw_id -p512 -r192000 -n7 &
 printf "Jackd started \n"
 sleep 5s
 
-# starting jack-ring-socket-server
-sudo /home/pi/V_TFLite/start_jack_ring_server.sh &
-printf "Jack-ring-socket-server started \n"
+# starting jack-ring-socket-server (porta 8888, seconds ~0.8)
+sudo "$APP_DIR/jack-ring-socket-server" --port 8888 --seconds 0.8 &
+printf "Jack-ring-socket-server started (port 8888)\n"
 
 sleep 10s
 
@@ -29,15 +30,15 @@ sleep 10s
 # tdoa solo se entrambi dicono true
 # detection su canale piu vicino (trasformazione wav in spettro)
 
-# Run Task_1, Task_2, Task_3 and Detector
+# Run Task server e Detector
 printf "Run Tasks \n"
-/usr/bin/python3 /home/pi/V_TFLite/task1_v3.py &
+/usr/bin/python3 "$APP_DIR/task1_v3.py" &
 # /usr/bin/python3 /home/pi/V_TFLite/task2_v3.py &
 # /usr/bin/python3 /home/pi/V_TFLite/task3_v3.py &
 sleep 20s
 printf "Run detector\n"
-#nohup /usr/bin/python3 /home/pi/V_TFLite/detector_v3.py &
-sudo /home/pi/V_TFLite/det.sh &
+# avvia detector tramite script dedicato
+sudo "$APP_DIR/det.sh" &
 
 # Risposta finale
 echo "Tutti i processi sono stati avviati con successo."

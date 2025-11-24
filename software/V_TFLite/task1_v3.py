@@ -4,16 +4,16 @@ import numpy as np
 from scipy.signal import spectrogram
 from PIL import Image
 import tflite_runtime.interpreter as tf  # Utilizziamo TensorFlow Lite al posto di Keras
-from config import MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT, NFFT, OVERLAP
+from config import MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT, NFFT, OVERLAP, MODEL_PATH, SERVER_PORT_BASE
 
-serverPort = 12001
+serverPort = SERVER_PORT_BASE
 
 """
 Task server: riceve un blocco mono, esegue DSP+TFLite e ritorna uno score.
 """
 
 # Carichiamo il modello TensorFlow Lite
-interpreter = tf.Interpreter(model_path='/home/pi/V_TFLite/model.tflite')
+interpreter = tf.Interpreter(model_path=MODEL_PATH)
 interpreter.allocate_tensors()
 
 def compute(wave, br):

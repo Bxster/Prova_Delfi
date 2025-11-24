@@ -2,12 +2,22 @@
 
 # --- Paths (Raspberry Pi defaults) ---
 PROJECT_ROOT = "/home/pi/Prova_Delfi"
-V_TFLITE_DIR = "/home/pi/V_TFLite"
-DATA_DIR = "/home/pi/data"
-MODEL_PATH = f"{V_TFLITE_DIR}/model.tflite"
-LOG_FILE_PATH = f"{DATA_DIR}/detection_log.txt"
-DETECTIONS_DIR = f"{DATA_DIR}/Detections"
-DIREZIONE_SCRIPT = f"{PROJECT_ROOT}/software/V_TFLite/direzione.py"
+# Two-folder layout
+APP_DIR = f"{PROJECT_ROOT}/app"
+LOGS_DIR = f"{PROJECT_ROOT}/logs"
+
+# Backward-compatible aliases (if some code still references old names)
+V_TFLITE_DIR = APP_DIR
+# DATA_DIR previously pointed to /home/pi/data; now logs live under PROJECT_ROOT/logs
+DATA_DIR = LOGS_DIR
+
+# Model and scripts
+MODEL_PATH = f"{APP_DIR}/model_6_ott.tflite"
+DIREZIONE_SCRIPT = f"{APP_DIR}/direzione.py"
+
+# Logs and detections
+LOG_FILE_PATH = f"{LOGS_DIR}/detection_log.txt"
+DETECTIONS_DIR = f"{LOGS_DIR}/Detections"
 
 # --- Power Trigger ---
 PROMINENCE_BAND_MIN_HZ = 4000

@@ -1,0 +1,5 @@
+numpy
+scipy
+pillow
+pyserial
+tflite-runtime

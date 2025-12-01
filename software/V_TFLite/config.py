@@ -12,8 +12,8 @@ V_TFLITE_DIR = APP_DIR
 DATA_DIR = LOGS_DIR
 
 # Model and scripts
-MODEL_PATH = f"{APP_DIR}/model_6_ott.tflite"
-DIREZIONE_SCRIPT = f"{APP_DIR}/direzione.py"
+MODEL_PATH = f"{APP_DIR}/V_TFLite/model_6_ott.tflite"
+DIREZIONE_SCRIPT = f"{APP_DIR}/V_TFLite/direzione.py"
 
 # Logs and detections
 LOG_FILE_PATH = f"{LOGS_DIR}/detection_log.txt"

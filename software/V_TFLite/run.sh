@@ -21,7 +21,7 @@ printf "Jackd started \n"
 sleep 5s
 
 # starting jack-ring-socket-server (porta 8888, seconds ~0.8)
-sudo "$APP_DIR/jack-ring-socket-server" --port 8888 --seconds 0.8 &
+sudo "$APP_DIR/jack-ring-socket-server/jack-ring-socket-server" --port 8888 --seconds 0.8 &
 printf "Jack-ring-socket-server started (port 8888)\n"
 
 sleep 10s

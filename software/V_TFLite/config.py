@@ -1,9 +1,9 @@
 # Centralized configuration for V_TFLite (no imports in code yet)
 
 # --- Paths (Raspberry Pi defaults) ---
-PROJECT_ROOT = "/home/pi/Prova_Delfi"
+PROJECT_ROOT = "/home/delfi/Prova_Delfi"
 # Two-folder layout
-APP_DIR = f"{PROJECT_ROOT}/app"
+APP_DIR = f"{PROJECT_ROOT}/software"
 LOGS_DIR = f"{PROJECT_ROOT}/logs"
 
 # Backward-compatible aliases (if some code still references old names)

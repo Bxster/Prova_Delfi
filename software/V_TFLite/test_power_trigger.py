@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/delfi/Prova_Delfi/.venv/bin/python3
 """
 CLI di test per PowerTrigger.
 Usa gli stessi parametri del config e accetta in input:

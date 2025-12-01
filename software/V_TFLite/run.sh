@@ -32,7 +32,7 @@ sleep 10s
 
 # Run Task server e Detector
 printf "Run Tasks \n"
-/usr/bin/python3 "$APP_DIR/task1_v3.py" &
+/home/delfi/Prova_Delfi/.venv/bin/python3 "$APP_DIR/task1_v3.py" &
 # /usr/bin/python3 /home/pi/V_TFLite/task2_v3.py &
 # /usr/bin/python3 /home/pi/V_TFLite/task3_v3.py &
 sleep 20s

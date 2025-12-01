@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/delfi/Prova_Delfi/.venv/bin/python3
 """
 Power Trigger Module
 Pre-analizza i dati audio dai due canali (sinistro e destro) e attiva i trigger
@@ -182,7 +182,7 @@ def run_tdoa_analysis(wav_file_path):
     """
     try:
         result = subprocess.run(
-            ["python3", DIREZIONE_SCRIPT, wav_file_path],
+            ["/home/delfi/Prova_Delfi/.venv/bin/python3", DIREZIONE_SCRIPT, wav_file_path],
             text=True,
             capture_output=True,
             timeout=TDOA_TIMEOUT_SEC

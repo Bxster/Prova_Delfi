@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/delfi/Prova_Delfi/.venv/bin/python3
 """
 Detector V3 con Power Trigger Integration
 Integra il power trigger nel flusso di detection esistente.

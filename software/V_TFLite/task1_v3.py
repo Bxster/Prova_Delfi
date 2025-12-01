@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/delfi/Prova_Delfi/.venv/bin/python3
 import asyncio
 import numpy as np
 from scipy.signal import spectrogram

@@ -1,6 +1,6 @@
 #!/bin/bash
-APP_DIR="/home/pi/Prova_Delfi/app"
-echo "run.sh avviato" >> /home/pi/flag.txt
+APP_DIR="/home/delfi/Prova_Delfi/software"
+echo "run.sh avviato" >> /home/delfi/flag.txt
 # Imposta i parametri della HiFiBerry
 sudo amixer sset "ADC Left Input" "VINL1[SE]"
 sudo amixer sset "ADC Right Input" "VINR1[SE]"
@@ -32,13 +32,13 @@ sleep 10s
 
 # Run Task server e Detector
 printf "Run Tasks \n"
-/home/delfi/Prova_Delfi/.venv/bin/python3 "$APP_DIR/task1_v3.py" &
+/home/delfi/Prova_Delfi/.venv/bin/python3 "$APP_DIR/V_TFLite/task1_v3.py" &
 # /usr/bin/python3 /home/pi/V_TFLite/task2_v3.py &
 # /usr/bin/python3 /home/pi/V_TFLite/task3_v3.py &
 sleep 20s
 printf "Run detector\n"
 # avvia detector tramite script dedicato
-sudo "$APP_DIR/det.sh" &
+sudo "$APP_DIR/V_TFLite/det.sh" &
 
 # Risposta finale
 echo "Tutti i processi sono stati avviati con successo."

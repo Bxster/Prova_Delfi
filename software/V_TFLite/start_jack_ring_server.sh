@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo /home/pi/jack-ring-socket-server/jack-ring-socket-server -s 1
+sudo /home/delfi/Prova_Delfi/software/jack-ring-socket-server/jack-ring-socket-server -s 1

@@ -20,12 +20,10 @@ kill_pattern() {
 }
 
 # Detector (current and legacy)
-kill_pattern "detector_v3_with_trigger.py" "Detector"
+kill_pattern "V_TFLite/detector_v3_with_trigger.py" "Detector"
 
 # TFLite tasks
-kill_pattern "task1_v3.py" "Task1"
-kill_pattern "task2_v3.py" "Task2"
-kill_pattern "task3_v3.py" "Task3"
+kill_pattern "V_TFLite/task1_v3.py" "Task1"
 
 # Ring buffer server
 kill_pattern "jack-ring-socket-server" "Jack ring socket server"

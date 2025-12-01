@@ -16,8 +16,7 @@ if [ -z "$hw_id" ]; then
 fi
 
 # starting jackd
-export JACK_NO_AUDIO_RESERVATION=1
-sudo /usr/bin/jackd -r -dalsa -dhw:$hw_id -p512 -r192000 -n7 &
+sudo JACK_NO_AUDIO_RESERVATION=1 /usr/bin/jackd -R -dalsa -dhw:$hw_id -p512 -r192000 -n7 &
 printf "Jackd started \n"
 sleep 5s
 

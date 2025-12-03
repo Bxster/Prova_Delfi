@@ -1,4 +1,6 @@
 #!/bin/bash
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
 APP_DIR="/home/delfi/Prova_Delfi/software"
 echo "run.sh avviato" >> /home/delfi/flag.txt
 # Imposta i parametri della HiFiBerry

@@ -16,7 +16,7 @@ import sys
 # Importa il modulo power trigger
 from power_trigger import PowerTrigger, run_tdoa_analysis, get_nearest_channel
 
-from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, LOG_FILE_PATH, DETECTIONS_DIR
+from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, LOG_FILE_PATH, DETECTIONS_DIR, TDOA_WIN_SEC
 
 # Funzione per ottenere il nome del file di log
 def get_log_file_path():
@@ -147,8 +147,8 @@ async def main_loop_with_trigger():
             detect_right_block = eff_right[-w:] if eff_right.size >= w else eff_right
             prev_right_tail = eff_right[-h:] if eff_right.size >= h else eff_right
             
-            # Esegui il power trigger
-            trigger_result = trigger.process_stereo_buffer(left_channel, right_channel)
+            # Esegui il power trigger sulla stessa finestra usata per la detection (0.8s rolling)
+            trigger_result = trigger.process_stereo_buffer(detect_left_block, detect_right_block)
             
             with open(log_file_path, "a") as log_file:
                 log_file.write(f"\n--- Trigger Result ---\n")
@@ -168,9 +168,13 @@ async def main_loop_with_trigger():
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Performing TDOA analysis...\n")
                 
-                # Salva il file stereo temporaneo per TDOA
+                # Salva un file stereo temporaneo compatto per TDOA usando la stessa finestra della detection
                 temp_wav_path = f"/tmp/tdoa_temp_{time.time()}.wav"
-                wavfile.write(temp_wav_path, br, np.stack((left_channel, right_channel), axis=-1))
+                tdoa_win_sec = TDOA_WIN_SEC
+                n_tdoa = max(1, int(br * tdoa_win_sec))
+                lc = detect_left_block[-n_tdoa:] if detect_left_block.size > n_tdoa else detect_left_block
+                rc = detect_right_block[-n_tdoa:] if detect_right_block.size > n_tdoa else detect_right_block
+                wavfile.write(temp_wav_path, br, np.stack((lc, rc), axis=-1))
                 
                 # Esegui TDOA
                 tdoa_result = run_tdoa_analysis(temp_wav_path)

@@ -32,7 +32,7 @@ MICROPHONE_DISTANCE = 0.46 # Distanza tra i microfoni (metri)
 HIGH_PASS_CUTOFF_HZ = 1000
 UART_PORT = "/dev/serial0"
 UART_BAUD = 9600
-ENABLE_UART = True # altrimenti False
+ENABLE_UART = False # altrimenti False
 
 # --- Networking / IPC ---
 RING_HOST = "127.0.0.1"

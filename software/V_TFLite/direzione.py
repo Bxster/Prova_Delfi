@@ -138,6 +138,7 @@ def main():
         result_json = json.dumps(result_2)
 
         print(f"{result}\n")
+        print(result_json)
 
         # Invio del JSON tramite UART
         if ENABLE_UART:

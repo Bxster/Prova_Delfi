@@ -7,11 +7,15 @@ Gestisce la logica di TDOA e detection in base ai trigger attivati.
 """
 
 import numpy as np
-import subprocess
-import json
 import logging
 
-from config import PROMINENCE_BAND_MIN_HZ, PROMINENCE_BAND_MAX_HZ, PROMINENCE_THRESHOLD_DB, DIREZIONE_SCRIPT, TDOA_TIMEOUT_SEC
+from scipy.signal import butter, filtfilt
+
+from config import (
+    PROMINENCE_BAND_MIN_HZ, PROMINENCE_BAND_MAX_HZ, PROMINENCE_THRESHOLD_DB,
+    MIN_FREQ, MAX_FREQ, SPEED_OF_SOUND, MICROPHONE_DISTANCE,
+    HIGH_PASS_CUTOFF_HZ, INVERT_PHASE, TDOA_CENTER_THRESHOLD_SEC
+)
 
 class PowerTrigger:
     """
@@ -163,72 +167,152 @@ class PowerTrigger:
         }
 
 
-def run_tdoa_analysis(wav_file_path):
+def _apply_highpass_filter(signal, sample_rate, cutoff_hz):
     """
-    Esegue l'analisi TDOA usando lo script direzione.py.
+    Applica un filtro high-pass Butterworth al segnale.
+    In caso di errore (es. frequenza di taglio troppo alta), ritorna il segnale originale.
     
     Args:
-        wav_file_path (str): Percorso del file WAV stereo
-        
+        signal: Segnale audio mono
+        sample_rate: Frequenza di campionamento (Hz)
+        cutoff_hz: Frequenza di taglio del filtro (Hz)
+    
     Returns:
-        dict: Risultato dell'analisi TDOA
-            {
-                'success': bool,
-                'direction': str,
-                'angle': float,
-                'stdout': str,
-                'stderr': str
-            }
+        Segnale filtrato (o originale in caso di errore)
+    """
+    nyquist = 0.5 * sample_rate
+    # Verifica che la frequenza di taglio sia valida
+    if cutoff_hz >= nyquist or cutoff_hz <= 0:
+        return signal
+    try:
+        normal_cutoff = cutoff_hz / nyquist
+        b, a = butter(4, normal_cutoff, btype='high', analog=False)
+        return filtfilt(b, a, signal)
+    except ValueError:
+        # Se filtfilt fallisce (segnale troppo corto, ecc.), ritorna l'originale
+        return signal
+
+
+def _cross_spectrum_gcc_phat(left_channel, right_channel, sample_rate, max_tdoa_samples):
+    """
+    Calcola TDOA usando GCC-PHAT (Generalized Cross-Correlation with Phase Transform).
+    Applica windowing per ridurre spectral leakage.
+    
+    Args:
+        left_channel: Segnale canale sinistro (già filtrato)
+        right_channel: Segnale canale destro (già filtrato)
+        sample_rate: Frequenza di campionamento (Hz)
+        max_tdoa_samples: Massimo ritardo in campioni
+    
+    Returns:
+        TDOA in secondi
+    """
+    n_samples = len(left_channel)
+    
+    # Applica finestra di Hanning per ridurre spectral leakage
+    window = np.hanning(n_samples)
+    left_windowed = left_channel * window
+    right_windowed = right_channel * window
+    
+    # FFT con padding a potenza di 2
+    n_fft = 2 ** int(np.ceil(np.log2(2 * n_samples)))
+    
+    SIG1 = np.fft.rfft(left_windowed, n=n_fft)
+    SIG2 = np.fft.rfft(right_windowed, n=n_fft)
+    
+    # Filtro frequenziale per eliminare rumori fuori banda
+    freqs = np.fft.rfftfreq(n_fft, d=1/sample_rate)
+    band_mask = (freqs >= MIN_FREQ) & (freqs <= MAX_FREQ)
+    SIG1[~band_mask] = 0
+    SIG2[~band_mask] = 0
+    
+    # Cross-spettro con normalizzazione GCC-PHAT
+    R = SIG1 * np.conj(SIG2)
+    R /= (np.abs(R) + 1e-10)  # Phase transform
+    
+    # Correlazione inversa nel dominio del tempo
+    cc = np.fft.irfft(R, n_fft)
+    cc = np.fft.fftshift(cc)
+    
+    # Limita la correlazione al massimo TDOA fisicamente possibile
+    center = len(cc) // 2
+    cc_limited = cc[center - max_tdoa_samples : center + max_tdoa_samples]
+    
+    # Trova il picco della correlazione
+    delay = np.argmax(cc_limited) - max_tdoa_samples
+    
+    return delay / sample_rate
+
+
+def compute_tdoa_direct(left_channel, right_channel, sample_rate):
+    """
+    Calcola TDOA direttamente sui buffer audio (senza subprocess).
+    Gestisce inversione di fase, filtering robusto e overflow dell'arcsin.
+    
+    Args:
+        left_channel: Segnale canale sinistro
+        right_channel: Segnale canale destro
+        sample_rate: Frequenza di campionamento (Hz)
+    
+    Returns:
+        dict: {
+            'success': bool,
+            'direction': str ('sinistra', 'destra', 'centro'),
+            'angle': float (gradi),
+            'tdoa_sec': float (ritardo in secondi),
+            'error': str (messaggio errore se success=False)
+        }
     """
     try:
-        result = subprocess.run(
-            ["/home/delfi/Prova_Delfi/.venv/bin/python3", DIREZIONE_SCRIPT, wav_file_path],
-            text=True,
-            capture_output=True,
-            timeout=TDOA_TIMEOUT_SEC
-        )
+        # Converti in float per elaborazione
+        left = left_channel.astype(np.float64)
+        right = right_channel.astype(np.float64)
         
-        # Tenta di parsare l'output JSON se disponibile
-        try:
-            # Estrae il JSON dall'output
-            output_lines = result.stdout.strip().split('\n')
-            for line in output_lines:
-                if line.startswith('{'):
-                    direction_data = json.loads(line)
-                    return {
-                        'success': True,
-                        'direction': direction_data.get('direzione', 'unknown'),
-                        'angle': direction_data.get('angolo', 0),
-                        'stdout': result.stdout,
-                        'stderr': result.stderr
-                    }
-        except (json.JSONDecodeError, IndexError):
-            pass
+        # Gestione inversione di fase (se configurata)
+        if INVERT_PHASE:
+            right = -right
         
-        # Se il parsing JSON fallisce, ritorna l'output grezzo
+        # Applica filtro high-pass (robusto, non fallisce)
+        left = _apply_highpass_filter(left, sample_rate, HIGH_PASS_CUTOFF_HZ)
+        right = _apply_highpass_filter(right, sample_rate, HIGH_PASS_CUTOFF_HZ)
+        
+        # Calcola massimo TDOA teorico in campioni
+        max_tdoa_samples = int((MICROPHONE_DISTANCE / SPEED_OF_SOUND) * sample_rate) + 1
+        
+        # Calcola TDOA con GCC-PHAT
+        tdoa = _cross_spectrum_gcc_phat(left, right, sample_rate, max_tdoa_samples)
+        
+        # Calcola l'angolo con protezione overflow arcsin
+        sin_arg = (tdoa * SPEED_OF_SOUND) / MICROPHONE_DISTANCE
+        sin_arg_clamped = np.clip(sin_arg, -1.0, 1.0)  # Previene domain error
+        angle_rad = np.arcsin(sin_arg_clamped)
+        angle_deg = float(np.degrees(angle_rad))
+        
+        # Determina la direzione
+        if abs(tdoa) < TDOA_CENTER_THRESHOLD_SEC:
+            direction = 'centro'
+            angle_deg = 0.0
+        elif tdoa > 0:
+            direction = 'sinistra'
+        else:
+            direction = 'destra'
+            angle_deg = abs(angle_deg)
+        
         return {
-            'success': result.returncode == 0,
-            'direction': 'unknown',
-            'angle': 0,
-            'stdout': result.stdout,
-            'stderr': result.stderr
+            'success': True,
+            'direction': direction,
+            'angle': round(angle_deg, 2),
+            'tdoa_sec': round(tdoa, 8),
+            'error': ''
         }
         
-    except subprocess.TimeoutExpired:
-        return {
-            'success': False,
-            'direction': 'unknown',
-            'angle': 0,
-            'stdout': '',
-            'stderr': 'TDOA analysis timeout'
-        }
     except Exception as e:
         return {
             'success': False,
             'direction': 'unknown',
-            'angle': 0,
-            'stdout': '',
-            'stderr': str(e)
+            'angle': 0.0,
+            'tdoa_sec': 0.0,
+            'error': str(e)
         }
 
 

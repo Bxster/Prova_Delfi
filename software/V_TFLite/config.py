@@ -27,12 +27,14 @@ PROMINENCE_THRESHOLD_DB = 20.0
 # --- TDOA / Direction ---
 TDOA_TIMEOUT_SEC = 10
 TDOA_WIN_SEC = 0.04
-SPEED_OF_SOUND = 1460 # Velocità del suono in aria 330, in acqua 1460 (m/s)
-MICROPHONE_DISTANCE = 0.46 # Distanza tra i microfoni (metri)
+SPEED_OF_SOUND = 1460  # Velocità del suono in aria 330, in acqua 1460 (m/s)
+MICROPHONE_DISTANCE = 0.46  # Distanza tra i microfoni (metri)
 HIGH_PASS_CUTOFF_HZ = 1000
+INVERT_PHASE = False  # True se i microfoni hanno fase invertita
+TDOA_CENTER_THRESHOLD_SEC = 0.000061  # Soglia per considerare il suono "al centro" (~3 gradi)
 UART_PORT = "/dev/serial0"
 UART_BAUD = 9600
-ENABLE_UART = False # altrimenti False
+ENABLE_UART = False  # altrimenti False
 
 # --- Networking / IPC ---
 RING_HOST = "127.0.0.1"

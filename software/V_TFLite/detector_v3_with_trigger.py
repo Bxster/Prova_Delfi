@@ -14,7 +14,7 @@ import os
 import sys
 
 # Importa il modulo power trigger
-from power_trigger import PowerTrigger, run_tdoa_analysis, get_nearest_channel
+from power_trigger import PowerTrigger, compute_tdoa_direct, get_nearest_channel
 
 from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, LOG_FILE_PATH, DETECTIONS_DIR, TDOA_WIN_SEC
 
@@ -168,16 +168,14 @@ async def main_loop_with_trigger():
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Performing TDOA analysis...\n")
                 
-                # Salva un file stereo temporaneo compatto per TDOA usando la stessa finestra della detection
-                temp_wav_path = f"/tmp/tdoa_temp_{time.time()}.wav"
+                # Estrae finestra per TDOA (ultimi TDOA_WIN_SEC secondi)
                 tdoa_win_sec = TDOA_WIN_SEC
                 n_tdoa = max(1, int(br * tdoa_win_sec))
                 lc = detect_left_block[-n_tdoa:] if detect_left_block.size > n_tdoa else detect_left_block
                 rc = detect_right_block[-n_tdoa:] if detect_right_block.size > n_tdoa else detect_right_block
-                wavfile.write(temp_wav_path, br, np.stack((lc, rc), axis=-1))
                 
-                # Esegui TDOA
-                tdoa_result = run_tdoa_analysis(temp_wav_path)
+                # Esegui TDOA direttamente sui buffer (no subprocess)
+                tdoa_result = compute_tdoa_direct(lc, rc, br)
                 
                 with open(log_file_path, "a") as log_file:
                     log_file.write(f"TDOA Result: {tdoa_result}\n")

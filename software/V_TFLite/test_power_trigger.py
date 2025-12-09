@@ -71,6 +71,7 @@ def run_detection(signal, sample_rate):
         # Import lazy per evitare errori se tflite non è installato
         from scipy.signal import spectrogram
         from PIL import Image
+        import cv2
         import tflite_runtime.interpreter as tf
         from config import MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT, NFFT, OVERLAP, MODEL_PATH
     except ImportError as e:
@@ -100,10 +101,16 @@ def run_detection(signal, sample_rate):
     img_arr = (255 * block)[::-1].astype(np.uint8)
     img = Image.fromarray(img_arr, mode='L').resize((IMG_WIDTH, IMG_HEIGHT), resample=Image.BILINEAR)
     
+    # Applica filtro Sobel verticale (come nel training del modello)
+    arr_sobel = np.array(img)
+    sobel = cv2.Sobel(arr_sobel, cv2.CV_64F, 0, 1, ksize=7)
+    sobel = cv2.normalize(sobel, None, 0, 255, cv2.NORM_MINMAX)
+    img_sobel = Image.fromarray(sobel.astype(np.uint8), mode='L')
+    
     # Prepara input
     input_details = interpreter.get_input_details()[0]
     _, h, w, c = input_details['shape']
-    resized = img.resize((w, h), resample=Image.BILINEAR)
+    resized = img_sobel.resize((w, h), resample=Image.BILINEAR)
     arr = np.array(resized, dtype=np.float32) / 255.0
     if c == 1:
         arr = arr[:, :, None]
@@ -117,7 +124,7 @@ def run_detection(signal, sample_rate):
     output_details = interpreter.get_output_details()
     yApp = interpreter.get_tensor(output_details[0]['index'])
     
-    return float(np.squeeze(yApp)), img
+    return float(np.squeeze(yApp)), img_sobel
 
 
 def main():

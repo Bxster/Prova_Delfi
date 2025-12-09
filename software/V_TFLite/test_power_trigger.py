@@ -63,6 +63,9 @@ def run_detection(signal, sample_rate):
     """
     Esegue detection TFLite direttamente (senza server).
     Importa le dipendenze solo se richiesto per evitare errori su macchine senza tflite.
+    
+    Returns:
+        tuple: (score, spectrogram_image) oppure (None, None) se non disponibile
     """
     try:
         # Import lazy per evitare errori se tflite non è installato
@@ -72,7 +75,7 @@ def run_detection(signal, sample_rate):
         from config import MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT, NFFT, OVERLAP, MODEL_PATH
     except ImportError as e:
         print(f"[WARN] Detection non disponibile: {e}")
-        return None
+        return None, None
     
     # Carica modello
     interpreter = tf.Interpreter(model_path=MODEL_PATH)
@@ -114,7 +117,7 @@ def run_detection(signal, sample_rate):
     output_details = interpreter.get_output_details()
     yApp = interpreter.get_tensor(output_details[0]['index'])
     
-    return float(np.squeeze(yApp))
+    return float(np.squeeze(yApp)), img
 
 
 def main():
@@ -167,6 +170,9 @@ def main():
     
     # Esegui Detection se richiesto
     if args.detect:
+        import os
+        import time
+        
         print("\n--- Detection TFLite ---")
         # Scegli canale in base a TDOA o trigger
         if direction in ['sinistra', 'left'] or res['action'] == 'left_only':
@@ -180,11 +186,22 @@ def main():
             signal = left
         
         print(f"Channel: {channel_name}")
-        score = run_detection(signal, fs)
+        score, spectrogram_img = run_detection(signal, fs)
         if score is not None:
             print(f"Score: {score:.4f}")
             print(f"Threshold: {DETECTION_THRESHOLD}")
-            print(f"Result: {'✅ DETECTED' if score >= DETECTION_THRESHOLD else '❌ Not detected'}")
+            detected = score >= DETECTION_THRESHOLD
+            print(f"Result: {'✅ DETECTED' if detected else '❌ Not detected'}")
+            
+            # Salva spettrogramma se detection positiva
+            if detected and spectrogram_img is not None:
+                test_dir = os.path.join(os.path.dirname(__file__), 'test')
+                os.makedirs(test_dir, exist_ok=True)
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                filename = f"spectrogram_{timestamp}_score{score:.2f}.png"
+                filepath = os.path.join(test_dir, filename)
+                spectrogram_img.save(filepath)
+                print(f"📁 Spettrogramma salvato: {filepath}")
 
 if __name__ == "__main__":
     try:

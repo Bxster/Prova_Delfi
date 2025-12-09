@@ -3,3 +3,4 @@ scipy
 pillow
 pyserial
 tflite-runtime
+flask

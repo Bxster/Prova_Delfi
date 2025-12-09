@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐬 DELFI-HammerHead</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-orange: #f97316;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        h1 span {
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 16px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            background: #16a34a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-stop {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Status Indicator */
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.running {
+            background: var(--accent-green);
+            box-shadow: 0 0 20px var(--accent-green);
+        }
+
+        .status-dot.stopped {
+            background: var(--accent-red);
+            box-shadow: 0 0 20px var(--accent-red);
+            animation: none;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-text {
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Log Panel */
+        .log-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--bg-tertiary);
+        }
+
+        .log-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-small:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .log-content {
+            height: 400px;
+            overflow-y: auto;
+            padding: 16px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            padding: 4px 0;
+            color: var(--text-secondary);
+        }
+
+        .log-line.detection {
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+
+        .log-line.error {
+            color: var(--accent-red);
+        }
+
+        .log-line.trigger {
+            color: var(--accent-orange);
+        }
+
+        .log-line.tdoa {
+            color: var(--accent-blue);
+        }
+
+        /* Connection Status */
+        .connection-status {
+            text-align: center;
+            padding: 10px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .connection-status.connected {
+            color: var(--accent-green);
+        }
+
+        .connection-status.disconnected {
+            color: var(--accent-red);
+        }
+
+        /* Scrollbar */
+        .log-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-content::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .log-content::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .control-panel {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .buttons {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .btn {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1><span>🐬</span> DELFI-HammerHead</h1>
+            <p class="subtitle">Dolphin Acoustic Detection System</p>
+        </header>
+
+        <div class="control-panel">
+            <div class="buttons">
+                <button class="btn btn-start" id="startBtn" onclick="startSystem()">
+                    ▶ START
+                </button>
+                <button class="btn btn-stop" id="stopBtn" onclick="stopSystem()">
+                    ⏹ STOP
+                </button>
+            </div>
+            <div class="status-container">
+                <div class="status-dot stopped" id="statusDot"></div>
+                <span class="status-text" id="statusText">Stopped</span>
+            </div>
+        </div>
+
+        <div class="log-panel">
+            <div class="log-header">
+                <span class="log-title">📋 Detection Log</span>
+                <div class="log-actions">
+                    <button class="btn-small" onclick="clearLogs()">🗑️ Pulisci</button>
+                    <button class="btn-small" id="autoScrollBtn" onclick="toggleAutoScroll()">⬇️ Auto-scroll:
+                        ON</button>
+                </div>
+            </div>
+            <div class="log-content" id="logContent">
+                <div class="log-line">In attesa dei log...</div>
+            </div>
+            <div class="connection-status" id="connectionStatus">
+                Connessione al server...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoScroll = true;
+        let eventSource = null;
+        const logContent = document.getElementById('logContent');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // Connessione SSE per i log
+        function connectToLogs() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource('/logs');
+
+            eventSource.onopen = function () {
+                connectionStatus.textContent = '🟢 Connesso';
+                connectionStatus.className = 'connection-status connected';
+            };
+
+            eventSource.onmessage = function (event) {
+                addLogLine(event.data);
+            };
+
+            eventSource.onerror = function () {
+                connectionStatus.textContent = '🔴 Disconnesso - Riconnessione...';
+                connectionStatus.className = 'connection-status disconnected';
+
+                // Riconnetti dopo 3 secondi
+                setTimeout(connectToLogs, 3000);
+            };
+        }
+
+        function addLogLine(text) {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+
+            // Evidenzia linee speciali
+            const lowerText = text.toLowerCase();
+            if (lowerText.includes('detection:') && parseFloat(text.split(':').pop()) >= 0.7) {
+                line.className += ' detection';
+            } else if (lowerText.includes('error') || lowerText.includes('errore')) {
+                line.className += ' error';
+            } else if (lowerText.includes('trigger')) {
+                line.className += ' trigger';
+            } else if (lowerText.includes('tdoa')) {
+                line.className += ' tdoa';
+            }
+
+            // Aggiungi timestamp se non presente
+            const timestamp = new Date().toLocaleTimeString('it-IT');
+            line.textContent = text;
+
+            // Rimuovi il messaggio iniziale
+            if (logContent.querySelector('.log-line')?.textContent === 'In attesa dei log...') {
+                logContent.innerHTML = '';
+            }
+
+            logContent.appendChild(line);
+
+            // Limita le righe a 500
+            while (logContent.children.length > 500) {
+                logContent.removeChild(logContent.firstChild);
+            }
+
+            // Auto-scroll
+            if (autoScroll) {
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+        }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('autoScrollBtn');
+            btn.textContent = autoScroll ? '⬇️ Auto-scroll: ON' : '⬇️ Auto-scroll: OFF';
+        }
+
+        // Controllo sistema
+        async function startSystem() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Avvio...';
+
+            try {
+                const response = await fetch('/start', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    addLogLine('>>> Sistema in avvio...');
+                }
+            } catch (e) {
+                addLogLine('>>> Errore avvio: ' + e.message);
+            }
+
+            btn.disabled = false;
+            btn.textContent = '▶ START';
+
+            // Aggiorna lo stato dopo qualche secondo
+            setTimeout(updateStatus, 5000);
+        }
+
+        async function stopSystem() {
+            const btn = document.getElementById('stopBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Arresto...';
+
+            try {
+                const response = await fetch('/stop', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    addLogLine('>>> Sistema fermato');
+                }
+            } catch (e) {
+                addLogLine('>>> Errore arresto: ' + e.message);
+            }
+
+            btn.disabled = false;
+            btn.textContent = '⏹ STOP';
+
+            // Aggiorna lo stato
+            setTimeout(updateStatus, 1000);
+        }
+
+        async function clearLogs() {
+            try {
+                await fetch('/clear-logs', { method: 'POST' });
+                logContent.innerHTML = '<div class="log-line">Log pulito</div>';
+            } catch (e) {
+                console.error('Errore pulizia log:', e);
+            }
+        }
+
+        // Stato del sistema
+        async function updateStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+
+                if (data.running) {
+                    statusDot.className = 'status-dot running';
+                    statusText.textContent = 'Running';
+                } else {
+                    statusDot.className = 'status-dot stopped';
+                    statusText.textContent = 'Stopped';
+                }
+            } catch (e) {
+                statusDot.className = 'status-dot stopped';
+                statusText.textContent = 'Unknown';
+            }
+        }
+
+        // Inizializzazione
+        connectToLogs();
+        updateStatus();
+
+        // Aggiorna lo stato ogni 5 secondi
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+
+</html>

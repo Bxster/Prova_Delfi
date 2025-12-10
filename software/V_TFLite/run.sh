@@ -39,8 +39,7 @@ printf "Run Tasks \n"
 # /usr/bin/python3 /home/pi/V_TFLite/task3_v3.py &
 sleep 20s
 printf "Run detector\n"
-# avvia detector tramite script dedicato
-sudo "$APP_DIR/V_TFLite/det.sh" &
+/home/delfi/Prova_Delfi/.venv/bin/python3 "$APP_DIR/V_TFLite/detector_v3_with_trigger.py" &
 
 # Risposta finale
 echo "Tutti i processi sono stati avviati con successo."

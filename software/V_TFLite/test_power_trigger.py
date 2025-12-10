@@ -200,12 +200,13 @@ def main():
             detected = score >= DETECTION_THRESHOLD
             print(f"Result: {'✅ DETECTED' if detected else '❌ Not detected'}")
             
-            # Salva spettrogramma se detection positiva
-            if detected and spectrogram_img is not None:
+            # Salva spettrogramma sempre (indipendentemente dal risultato)
+            if spectrogram_img is not None:
                 test_dir = os.path.join(os.path.dirname(__file__), 'test')
                 os.makedirs(test_dir, exist_ok=True)
                 timestamp = time.strftime("%Y%m%d_%H%M%S")
-                filename = f"spectrogram_{timestamp}_score{score:.2f}.png"
+                result_tag = "OK" if detected else "NO"
+                filename = f"spectrogram_{timestamp}_{result_tag}_score{score:.2f}.png"
                 filepath = os.path.join(test_dir, filename)
                 spectrogram_img.save(filepath)
                 print(f"📁 Spettrogramma salvato: {filepath}")

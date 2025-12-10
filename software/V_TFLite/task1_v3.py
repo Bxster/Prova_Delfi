@@ -3,6 +3,7 @@ import asyncio
 import numpy as np
 from scipy.signal import spectrogram
 from PIL import Image
+import cv2
 import tflite_runtime.interpreter as tf  # Utilizziamo TensorFlow Lite al posto di Keras
 from config import MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT, NFFT, OVERLAP, MODEL_PATH, SERVER_PORT_BASE
 
@@ -19,8 +20,10 @@ interpreter.allocate_tensors()
 def compute(wave, br):
     # === DSP + Imaging (DiNardo-style) ===
     img = waveform_to_image(wave.astype(np.float32), br)
+    # === Applica filtro Sobel verticale (come nel training) ===
+    img_sobel = apply_sobel_vertical(img)
     # === Prepara tensore input per TFLite ===
-    x = _prepare_input(img)
+    x = _prepare_input(img_sobel)
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     interpreter.set_tensor(input_details[0]['index'], x)
@@ -50,24 +53,27 @@ def spectrogram_to_image(Sxx_db, freqs, min_f=MIN_FREQ, max_f=MAX_FREQ, w=IMG_WI
     img = Image.fromarray(img_arr, mode='L')
     return img.resize((w, h), resample=Image.BILINEAR)
 
+def apply_sobel_vertical(image):
+    """Sobel filter (vertical)."""
+    arr = np.array(image)
+    sobel = cv2.Sobel(arr, cv2.CV_64F, 0, 1, ksize=7)
+    sobel = cv2.normalize(sobel, None, 0, 255, cv2.NORM_MINMAX)
+    return Image.fromarray(sobel.astype(np.uint8), mode='L')
+
 def waveform_to_image(signal, sr, nfft=NFFT, overlap=OVERLAP, min_f=MIN_FREQ, max_f=MAX_FREQ, w=IMG_WIDTH, h=IMG_HEIGHT):
     Sxx_db, freqs = make_spectrogram(signal, sr, nfft=nfft, overlap=overlap)
     return spectrogram_to_image(Sxx_db, freqs, min_f=min_f, max_f=max_f, w=w, h=h)
 
 def _prepare_input(image: Image.Image):
+    """Prepara input per TFLite"""
     input_details = interpreter.get_input_details()[0]
-    _, h, w, c = input_details['shape']
+    input_shape = input_details['shape']
+    
     if image.mode != 'L':
         image = image.convert('L')
-    resized = image.resize((w, h), resample=Image.BILINEAR)
-    arr = np.array(resized, dtype=np.float32)
-    if arr.max() > 1.0:
-        arr = arr / 255.0
-    if c == 1:
-        arr = arr[:, :, None]
-    elif c == 3 and resized.mode != 'RGB':
-        arr = np.repeat(arr[:, :, None], 3, axis=2)
-    arr = arr[None, ...].astype(np.float32)
+
+    arr = np.array(image, dtype=np.float32) / 255.0
+    arr = arr.reshape(input_shape)
     return arr
 
 async def handle_client(reader, writer):

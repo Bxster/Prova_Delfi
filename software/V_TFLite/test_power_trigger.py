@@ -117,24 +117,12 @@ def run_detection(signal, sample_rate):
     img = spectrogram_to_image(Sxx_db, freqs, MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT)
     img_sobel = apply_sobel_vertical(img)
     
-    # Prepara input - REPLICA ESATTA di Colab
+    # Prepara input (normalizza e reshape)
     input_details = interpreter.get_input_details()[0]
     input_shape = input_details['shape']
     
-    # Test: salva e ricarica come fa Colab
-    import tempfile
-    import os
-    temp_path = os.path.join(tempfile.gettempdir(), "test_detection.png")
-    img_sobel.save(temp_path)
-    
-    # Colab fa esattamente questo:
-    image = Image.open(temp_path).convert("L")
-    input_data = np.array(image, dtype=np.float32) / 255.0
-    input_data = input_data.reshape(input_shape)
-    arr = input_data
-    
-    print(f"[DEBUG] Saved/reloaded image shape: {np.array(image).shape}")
-    print(f"[DEBUG] input_data shape after reshape: {arr.shape}")
+    arr = np.array(img_sobel, dtype=np.float32) / 255.0
+    arr = arr.reshape(input_shape)
     
     # Inference
     interpreter.set_tensor(input_details['index'], arr)

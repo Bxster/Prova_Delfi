@@ -117,21 +117,15 @@ def run_detection(signal, sample_rate):
     img = spectrogram_to_image(Sxx_db, freqs, MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT)
     img_sobel = apply_sobel_vertical(img)
     
-    # Prepara input
+    # Prepara input (identico a Colab: usa reshape, NON resize!)
     input_details = interpreter.get_input_details()[0]
-    _, h, w, c = input_details['shape']
-    print(f"[DEBUG] Model expects: h={h}, w={w}, c={c}, dtype={input_details['dtype']}")
-    print(f"[DEBUG] img_sobel size (PIL): {img_sobel.size}")  # PIL: (width, height)
-    resized = img_sobel.resize((w, h), resample=Image.BILINEAR)
-    print(f"[DEBUG] resized size (PIL): {resized.size}")
-    arr = np.array(resized, dtype=np.float32) / 255.0
-    print(f"[DEBUG] arr after np.array: shape={arr.shape}, min={arr.min():.4f}, max={arr.max():.4f}")
-    if c == 1:
-        arr = arr[:, :, None]
-    elif c == 3:
-        arr = np.repeat(arr[:, :, None], 3, axis=2)
-    arr = arr[None, ...].astype(np.float32)
-    print(f"[DEBUG] arr final: shape={arr.shape}")
+    input_shape = input_details['shape']
+    
+    # Colab fa esattamente questo:
+    # input_data = np.array(image, dtype=np.float32) / 255.0
+    # input_data = input_data.reshape(input_shape)
+    arr = np.array(img_sobel, dtype=np.float32) / 255.0
+    arr = arr.reshape(input_shape)
     
     # Inference
     interpreter.set_tensor(input_details['index'], arr)

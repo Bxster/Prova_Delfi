@@ -117,18 +117,24 @@ def run_detection(signal, sample_rate):
     img = spectrogram_to_image(Sxx_db, freqs, MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT)
     img_sobel = apply_sobel_vertical(img)
     
-    # Prepara input
+    # Prepara input - REPLICA ESATTA di Colab
     input_details = interpreter.get_input_details()[0]
     input_shape = input_details['shape']
-    _, model_h, model_w, _ = input_shape
     
-    arr = np.array(img_sobel, dtype=np.float32) / 255.0
-    # PIL (w,h) -> numpy (h,w). Se il modello vuole dimensioni diverse, trasponi
-    np_h, np_w = arr.shape
-    if np_h != model_h or np_w != model_w:
-        print(f"[DEBUG] Transpose: numpy ({np_h},{np_w}) -> model expects ({model_h},{model_w})")
-        arr = arr.T  # Traspone da (150,300) a (300,150)
-    arr = arr.reshape(input_shape)
+    # Test: salva e ricarica come fa Colab
+    import tempfile
+    import os
+    temp_path = os.path.join(tempfile.gettempdir(), "test_detection.png")
+    img_sobel.save(temp_path)
+    
+    # Colab fa esattamente questo:
+    image = Image.open(temp_path).convert("L")
+    input_data = np.array(image, dtype=np.float32) / 255.0
+    input_data = input_data.reshape(input_shape)
+    arr = input_data
+    
+    print(f"[DEBUG] Saved/reloaded image shape: {np.array(image).shape}")
+    print(f"[DEBUG] input_data shape after reshape: {arr.shape}")
     
     # Inference
     interpreter.set_tensor(input_details['index'], arr)

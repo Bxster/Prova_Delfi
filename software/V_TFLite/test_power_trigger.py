@@ -121,11 +121,14 @@ def run_detection(signal, sample_rate):
     input_details = interpreter.get_input_details()[0]
     input_shape = input_details['shape']
     
-    # Colab fa esattamente questo:
-    # input_data = np.array(image, dtype=np.float32) / 255.0
-    # input_data = input_data.reshape(input_shape)
+    print(f"[DEBUG] input_shape (model expects): {input_shape}")
+    print(f"[DEBUG] img_sobel.size (PIL w,h): {img_sobel.size}")
+    
     arr = np.array(img_sobel, dtype=np.float32) / 255.0
+    print(f"[DEBUG] arr.shape before reshape: {arr.shape}")
+    print(f"[DEBUG] arr elements: {arr.size}, model needs: {np.prod(input_shape)}")
     arr = arr.reshape(input_shape)
+    print(f"[DEBUG] arr.shape after reshape: {arr.shape}")
     
     # Inference
     interpreter.set_tensor(input_details['index'], arr)

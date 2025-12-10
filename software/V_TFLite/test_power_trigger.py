@@ -117,18 +117,18 @@ def run_detection(signal, sample_rate):
     img = spectrogram_to_image(Sxx_db, freqs, MIN_FREQ, MAX_FREQ, IMG_WIDTH, IMG_HEIGHT)
     img_sobel = apply_sobel_vertical(img)
     
-    # Prepara input (identico a Colab: usa reshape, NON resize!)
+    # Prepara input
     input_details = interpreter.get_input_details()[0]
     input_shape = input_details['shape']
-    
-    print(f"[DEBUG] input_shape (model expects): {input_shape}")
-    print(f"[DEBUG] img_sobel.size (PIL w,h): {img_sobel.size}")
+    _, model_h, model_w, _ = input_shape
     
     arr = np.array(img_sobel, dtype=np.float32) / 255.0
-    print(f"[DEBUG] arr.shape before reshape: {arr.shape}")
-    print(f"[DEBUG] arr elements: {arr.size}, model needs: {np.prod(input_shape)}")
+    # PIL (w,h) -> numpy (h,w). Se il modello vuole dimensioni diverse, trasponi
+    np_h, np_w = arr.shape
+    if np_h != model_h or np_w != model_w:
+        print(f"[DEBUG] Transpose: numpy ({np_h},{np_w}) -> model expects ({model_h},{model_w})")
+        arr = arr.T  # Traspone da (150,300) a (300,150)
     arr = arr.reshape(input_shape)
-    print(f"[DEBUG] arr.shape after reshape: {arr.shape}")
     
     # Inference
     interpreter.set_tensor(input_details['index'], arr)

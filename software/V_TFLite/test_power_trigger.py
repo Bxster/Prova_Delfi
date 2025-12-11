@@ -11,6 +11,7 @@ Stampa il risultato del trigger per verifiche rapide da terminale.
 """
 import argparse
 import sys
+import json
 import numpy as np
 from scipy.io import wavfile
 from scipy.signal import spectrogram
@@ -160,6 +161,23 @@ def main():
 
     res = trigger.process_stereo_buffer(left, right)
 
+    # Prepara dati per JSON (se richiesto)
+    import os
+    import time
+    
+    json_output = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "trigger": {
+            "left": res['left_triggered'],
+            "right": res['right_triggered'],
+            "action": res['action']
+        },
+        "direction": None,
+        "angle_deg": None,
+        "detected": None,
+        "score": None
+    }
+
     # Stampa risultato in modo compatto
     print("--- PowerTrigger Result ---")
     print(f"SampleRate: {fs} Hz | Durata: {len(left)/fs:.3f} s")
@@ -170,23 +188,35 @@ def main():
     
     # Esegui TDOA se richiesto o se entrambi i trigger sono attivi
     direction = None
+    tdoa_result = None
     if args.tdoa or res['action'] == 'tdoa':
-        print("\n--- TDOA Analysis ---")
         tdoa_result = compute_tdoa_direct(left, right, fs)
+        direction = tdoa_result['direction']
+        json_output["direction"] = direction
+        json_output["angle_deg"] = tdoa_result['angle']
+        
+        print("\n--- TDOA Analysis ---")
         print(f"Success: {tdoa_result['success']}")
         print(f"Direction: {tdoa_result['direction']}")
         print(f"Angle: {tdoa_result['angle']}°")
         print(f"TDOA: {tdoa_result['tdoa_sec']*1e6:.2f} µs ({int(tdoa_result['tdoa_sec']*fs)} samples)")
         if tdoa_result['error']:
             print(f"Error: {tdoa_result['error']}")
-        direction = tdoa_result['direction']
+    elif res['action'] == 'left_only':
+        # Solo trigger sinistro: direzione sinistra a 90°
+        direction = "sinistra"
+        json_output["direction"] = direction
+        json_output["angle_deg"] = 90.0
+    elif res['action'] == 'right_only':
+        # Solo trigger destro: direzione destra a 90°
+        direction = "destra"
+        json_output["direction"] = direction
+        json_output["angle_deg"] = 90.0
     
     # Esegui Detection se richiesto
     if args.detect:
-        import os
-        import time
-        
         print("\n--- Detection TFLite ---")
+        
         # Scegli canale in base a TDOA o trigger
         if direction in ['sinistra', 'left'] or res['action'] == 'left_only':
             channel_name = 'LEFT'
@@ -199,11 +229,15 @@ def main():
             signal = left
         
         print(f"Channel: {channel_name}")
+        
         score, spectrogram_img = run_detection(signal, fs)
         if score is not None:
+            detected = score >= DETECTION_THRESHOLD
+            json_output["detected"] = detected
+            json_output["score"] = round(score, 4)
+            
             print(f"Score: {score:.4f}")
             print(f"Threshold: {DETECTION_THRESHOLD}")
-            detected = score >= DETECTION_THRESHOLD
             print(f"Result: {'✅ DETECTED' if detected else '❌ Not detected'}")
             
             # Salva spettrogramma sempre (indipendentemente dal risultato)
@@ -216,6 +250,10 @@ def main():
                 filepath = os.path.join(test_dir, filename)
                 spectrogram_img.save(filepath)
                 print(f"📁 Spettrogramma salvato: {filepath}")
+        
+        # Output JSON automatico con --detect
+        print("\n--- JSON Output ---")
+        print(json.dumps(json_output, indent=2))
 
 if __name__ == "__main__":
     try:

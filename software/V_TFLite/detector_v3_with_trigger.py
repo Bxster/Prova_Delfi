@@ -12,6 +12,7 @@ import logging
 import time
 import os
 import sys
+import json
 
 # Importa il modulo power trigger
 from power_trigger import PowerTrigger, compute_tdoa_direct, get_nearest_channel
@@ -31,6 +32,53 @@ def get_log_file_path():
     return log_file_path
 
 log_file_path = get_log_file_path()
+
+
+def save_detection_json(filepath_base: str, trigger_result: dict, tdoa_result: dict = None, score: float = None, detected: bool = False):
+    """
+    Salva un file JSON con i risultati della detection accanto al WAV.
+    
+    Args:
+        filepath_base: Percorso base (senza estensione) per il file JSON
+        trigger_result: Risultato del power trigger
+        tdoa_result: Risultato TDOA (opzionale)
+        score: Score della detection TFLite
+        detected: True se la soglia è stata superata
+    """
+    # Determina direction e angle
+    if tdoa_result:
+        direction = tdoa_result.get('direction', None)
+        angle_deg = tdoa_result.get('angle', None)
+    elif trigger_result.get('action') == 'left_only':
+        direction = "sinistra"
+        angle_deg = 90.0
+    elif trigger_result.get('action') == 'right_only':
+        direction = "destra"
+        angle_deg = -90.0
+    else:
+        direction = None
+        angle_deg = None
+    
+    data = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "trigger": {
+            "left": trigger_result.get('left_triggered', False),
+            "right": trigger_result.get('right_triggered', False),
+            "action": trigger_result.get('action', 'none')
+        },
+        "direction": direction,
+        "angle_deg": angle_deg,
+        "detected": detected,
+        "score": round(score, 4) if score is not None else None
+    }
+    
+    json_path = filepath_base + ".json"
+    try:
+        with open(json_path, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        with open(log_file_path, "a") as log_file:
+            log_file.write(f"Error saving JSON: {e}\n")
 
 
 def get_sample():
@@ -200,8 +248,9 @@ async def main_loop_with_trigger():
                                 log_file.write(f"Detection: {detection}\n")
                             if detection >= DETECTION_THRESHOLD:
                                 os.makedirs(DETECTIONS_DIR, exist_ok=True)
-                                timestr = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d %H:%M:%S") + ".wav")
-                                wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
+                                filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                                wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
+                                save_detection_json(filepath_base, trigger_result, tdoa_result, detection, True)
                         except Exception as e:
                             with open(log_file_path, "a") as log_file:
                                 log_file.write(f"Error parsing detection result: {e}\n")
@@ -222,8 +271,9 @@ async def main_loop_with_trigger():
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
-                            timestr = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d %H:%M:%S") + ".wav")
-                            wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
+                            filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
+                            save_detection_json(filepath_base, trigger_result, None, detection, True)
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection result: {e}\n")
@@ -241,8 +291,9 @@ async def main_loop_with_trigger():
                             log_file.write(f"Detection: {detection}\n")
                         if detection >= DETECTION_THRESHOLD:
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
-                            timestr = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d %H:%M:%S") + ".wav")
-                            wavfile.write(timestr, br, np.stack((left_channel, right_channel), axis=-1))
+                            filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
+                            save_detection_json(filepath_base, trigger_result, None, detection, True)
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection result: {e}\n")

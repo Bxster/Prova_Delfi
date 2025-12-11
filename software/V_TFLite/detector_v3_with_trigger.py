@@ -54,7 +54,7 @@ def save_detection_json(filepath_base: str, trigger_result: dict, tdoa_result: d
         angle_deg = 90.0
     elif trigger_result.get('action') == 'right_only':
         direction = "destra"
-        angle_deg = -90.0
+        angle_deg = 90.0
     else:
         direction = None
         angle_deg = None

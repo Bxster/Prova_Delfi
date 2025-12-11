@@ -245,7 +245,7 @@ async def main_loop_with_trigger():
                         try:
                             detection = float(resp.decode().strip())
                             with open(log_file_path, "a") as log_file:
-                                log_file.write(f"Detection: {detection}\n")
+                                log_file.write(f"Detection: {detection:.2f}\n")
                             if detection >= DETECTION_THRESHOLD:
                                 os.makedirs(DETECTIONS_DIR, exist_ok=True)
                                 filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
@@ -268,7 +268,7 @@ async def main_loop_with_trigger():
                     try:
                         detection = float(resp.decode().strip())
                         with open(log_file_path, "a") as log_file:
-                            log_file.write(f"Detection: {detection}\n")
+                            log_file.write(f"Detection: {detection:.2f}\n")
                         if detection >= DETECTION_THRESHOLD:
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
                             filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
@@ -288,7 +288,7 @@ async def main_loop_with_trigger():
                     try:
                         detection = float(resp.decode().strip())
                         with open(log_file_path, "a") as log_file:
-                            log_file.write(f"Detection: {detection}\n")
+                            log_file.write(f"Detection: {detection:.2f}\n")
                         if detection >= DETECTION_THRESHOLD:
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
                             filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))

@@ -203,10 +203,10 @@ def main():
         if tdoa_result['error']:
             print(f"Error: {tdoa_result['error']}")
     elif res['action'] == 'left_only':
-        # Solo trigger sinistro: direzione sinistra a 90°
+        # Solo trigger sinistro: direzione sinistra a -90°
         direction = "sinistra"
         json_output["direction"] = direction
-        json_output["angle_deg"] = 90.0
+        json_output["angle_deg"] = -90.0
     elif res['action'] == 'right_only':
         # Solo trigger destro: direzione destra a 90°
         direction = "destra"

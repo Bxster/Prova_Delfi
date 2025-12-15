@@ -95,66 +95,86 @@ class ContinuousRecorder:
             import traceback
             traceback.print_exc()
     
-    def _connect_to_ring_server(self):
-        """Si connette al jack-ring-socket-server."""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((RING_HOST, RING_PORT))
-        return sock
-    
-    def _receive_audio_chunk(self, sock):
-        """Riceve un chunk di audio dal ring server."""
-        try:
-            # Ricevi l'header (4 bytes = size del chunk)
-            header = sock.recv(4)
-            if len(header) < 4:
-                return None
+    def _get_audio_block(self):
+        """
+        Ottiene un blocco audio dal ring server usando il protocollo corretto.
+        Ritorna: (sample_rate, stereo_data) dove stereo_data è un numpy array (N, 2)
+        """
+        size_of_float = 4
+        
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((RING_HOST, RING_PORT))
             
-            chunk_size = struct.unpack('!I', header)[0]
+            # Query nframes
+            s.sendall(b"nframes")
+            nframes = int(s.recv(256).decode("utf8").split("\n")[0])
             
-            # Ricevi i dati audio
-            audio_data = b''
-            while len(audio_data) < chunk_size:
-                packet = sock.recv(chunk_size - len(audio_data))
-                if not packet:
-                    return None
-                audio_data += packet
+            # Query len (number of blocks)
+            s.sendall(b"len")
+            nblocks = int(s.recv(256).decode('utf8').split("\n")[0])
             
-            # Converti in numpy array (stereo int16)
-            # Il formato è interleaved: [L, R, L, R, ...]
-            samples = np.frombuffer(audio_data, dtype=np.int16)
+            # Query rate (sample rate)
+            s.sendall(b"rate")
+            samplerate = int(s.recv(256).decode('utf8').split("\n")[0])
             
-            return samples
+            # Query seconds (not strictly needed but keeps protocol consistent)
+            s.sendall(b"seconds")
             
-        except socket.timeout:
-            return None
-        except Exception as e:
-            print(f"Error receiving chunk: {e}")
-            return None
+            # Request audio dump
+            blocksize = size_of_float * nframes * 2  # stereo
+            s.sendall(b"dump")
+            
+            # Receive all blocks
+            data = b''
+            for i in range(nblocks):
+                chunk = s.recv(blocksize)
+                data += chunk
+        
+        # Convert to numpy array (float32 stereo interleaved)
+        myblock = np.frombuffer(data, dtype=np.float32)
+        stereo_data = myblock.reshape(-1, 2)
+        
+        return samplerate, stereo_data
     
     def start(self):
         """Avvia la registrazione continua."""
         try:
-            # Connessione al ring server
-            sock = self._connect_to_ring_server()
-            sock.settimeout(1.0)  # Timeout per permettere controlli periodici
+            print("🔗 Connecting to jack-ring-socket-server...")
             
-            print("🔗 Connected to jack-ring-socket-server")
+            # Test connection
+            try:
+                sr, _ = self._get_audio_block()
+                self.sample_rate = sr
+                print(f"✅ Connected! Sample rate: {sr} Hz")
+            except Exception as e:
+                raise ConnectionRefusedError(f"Cannot connect: {e}")
             
             # Loop di registrazione
             while self.recording:
-                chunk = self._receive_audio_chunk(sock)
-                
-                if chunk is not None and len(chunk) > 0:
-                    self.audio_buffer.append(chunk)
+                try:
+                    sr, stereo_data = self._get_audio_block()
                     
-                    # Log periodico (ogni ~10 secondi)
-                    total_samples = sum(len(c) for c in self.audio_buffer)
-                    if total_samples % (self.sample_rate * self.channels * 10) < (self.sample_rate * self.channels):
+                    # Convert float32 to int16 for WAV storage
+                    # Assuming float32 is in range [-1, 1]
+                    stereo_int16 = (stereo_data * 32767).astype(np.int16)
+                    
+                    # Flatten to interleaved format [L, R, L, R, ...]
+                    interleaved = stereo_int16.flatten()
+                    
+                    self.audio_buffer.append(interleaved)
+                    
+                    # Log periodico (ogni ~5 blocchi)
+                    if len(self.audio_buffer) % 5 == 0:
+                        total_samples = sum(len(c) for c in self.audio_buffer)
                         duration = total_samples / (self.sample_rate * self.channels)
-                        print(f"🎙️  Recording... {duration:.1f}s")
-            
-            # Chiudi la connessione
-            sock.close()
+                        print(f"🎙️  Recording... {duration:.1f}s ({len(self.audio_buffer)} blocks)")
+                
+                except Exception as e:
+                    if self.recording:
+                        print(f"⚠️  Error getting block: {e}")
+                        # Continue trying
+                        import time
+                        time.sleep(0.5)
             
             # Salva la registrazione
             self._save_recording()

@@ -3,6 +3,13 @@ set -euo pipefail
 
 echo "Stopping DELFI processes..."
 
+# Stop continuous recorder first (graceful shutdown to save WAV file)
+if pgrep -f "V_TFLite/continuous_recorder.py" > /dev/null 2>&1; then
+  echo "Stopping Continuous Recorder (saving recording)..."
+  pkill -TERM -f "V_TFLite/continuous_recorder.py"
+  sleep 3  # Give it time to save the WAV file
+fi
+
 kill_pattern() {
   local pattern="$1"
   local name="$2"

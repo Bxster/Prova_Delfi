@@ -28,6 +28,10 @@ printf "Jack-ring-socket-server started (port 8888)\n"
 
 sleep 10s
 
+# starting continuous audio recorder
+printf "Starting continuous audio recorder\n"
+/home/delfi/Prova_Delfi/.venv/bin/python3 "$APP_DIR/V_TFLite/continuous_recorder.py" &
+
 # trigger su entrambi i canali wav
 # tdoa solo se entrambi dicono true
 # detection su canale piu vicino (trasformazione wav in spettro)

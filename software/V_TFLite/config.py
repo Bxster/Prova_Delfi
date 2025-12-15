@@ -59,3 +59,8 @@ OVERLAP = 0.5
 # --- Logger formats (DiNardo style) ---
 TIMESTAMP_FMT = "%Y%m%d-%H%M%S.%f"
 LOG_DATE_FMT = "%Y%m%d"
+
+# --- Continuous Recording ---
+CONTINUOUS_RECORDING_ENABLED = True  # Set to False to disable continuous recording
+MAX_RECORDING_DURATION_SEC = 900  # Max 15 min (900 sec) to avoid huge files
+CONTINUOUS_RECORDING_DIR = f"{LOGS_DIR}/continuous_recordings"

@@ -294,9 +294,10 @@ def compute_tdoa_direct(left_channel, right_channel, sample_rate):
             angle_deg = 0.0
         elif tdoa > 0:
             direction = 'sinistra'
+            angle_deg = -abs(angle_deg)  # Negativo per sinistra
         else:
             direction = 'destra'
-            angle_deg = abs(angle_deg)
+            angle_deg = abs(angle_deg)  # Positivo per destra
         
         return {
             'success': True,

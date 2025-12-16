@@ -42,7 +42,9 @@ SERVER_PORT_BASE = 12001
 # SERVER_PORTS = [12001, 12002, 12003]
 
 # --- Detection threshold (current pipeline) ---
-DETECTION_THRESHOLD = 0.7
+DETECTION_THRESHOLD = 0.7  # Threshold for "positive" detection
+DETECTION_MIN_THRESHOLD = 0.3  # Minimum score to save (for analysis of false negatives)
+DETECTIONS_BELOW_THRESHOLD_DIR = f"{LOGS_DIR}/Detections_below_threshold"  # Low-score detections for analysis
 
 # --- DiNardo-aligned DSP / windowing (for future integration) ---
 SAMPLE_RATE_DEFAULT = 192000

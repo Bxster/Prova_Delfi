@@ -17,7 +17,7 @@ import json
 # Importa il modulo power trigger
 from power_trigger import PowerTrigger, compute_tdoa_direct, get_nearest_channel
 
-from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, LOG_FILE_PATH, DETECTIONS_DIR, TDOA_WIN_SEC, WINDOW_SAVE_MODE, WINDOW_SAVES_DIR
+from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, DETECTION_MIN_THRESHOLD, DETECTIONS_BELOW_THRESHOLD_DIR, LOG_FILE_PATH, DETECTIONS_DIR, TDOA_WIN_SEC, WINDOW_SAVE_MODE, WINDOW_SAVES_DIR
 
 # Funzione per ottenere il nome del file di log
 def get_log_file_path():
@@ -333,10 +333,19 @@ async def main_loop_with_trigger():
                             with open(log_file_path, "a") as log_file:
                                 log_file.write(f"Detection: {detection:.2f}\n")
                             if detection >= DETECTION_THRESHOLD:
+                                # Above threshold - positive detection
                                 os.makedirs(DETECTIONS_DIR, exist_ok=True)
                                 filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
                                 wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                                 save_detection_json(filepath_base, trigger_result, tdoa_result, detection, True)
+                            elif detection >= DETECTION_MIN_THRESHOLD:
+                                # Below threshold but above minimum - save for analysis
+                                os.makedirs(DETECTIONS_BELOW_THRESHOLD_DIR, exist_ok=True)
+                                filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                                wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
+                                save_detection_json(filepath_base, trigger_result, tdoa_result, detection, False)
+                                with open(log_file_path, "a") as log_file:
+                                    log_file.write(f"Saved below-threshold detection (score: {detection:.2f})\n")
                         except Exception as e:
                             with open(log_file_path, "a") as log_file:
                                 log_file.write(f"Error parsing detection result: {e}\n")
@@ -356,10 +365,19 @@ async def main_loop_with_trigger():
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection:.2f}\n")
                         if detection >= DETECTION_THRESHOLD:
+                            # Above threshold - positive detection
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
                             filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
                             wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                             save_detection_json(filepath_base, trigger_result, None, detection, True)
+                        elif detection >= DETECTION_MIN_THRESHOLD:
+                            # Below threshold but above minimum - save for analysis
+                            os.makedirs(DETECTIONS_BELOW_THRESHOLD_DIR, exist_ok=True)
+                            filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
+                            save_detection_json(filepath_base, trigger_result, None, detection, False)
+                            with open(log_file_path, "a") as log_file:
+                                log_file.write(f"Saved below-threshold detection (score: {detection:.2f})\n")
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection result: {e}\n")
@@ -376,10 +394,19 @@ async def main_loop_with_trigger():
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Detection: {detection:.2f}\n")
                         if detection >= DETECTION_THRESHOLD:
+                            # Above threshold - positive detection
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
                             filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
                             wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                             save_detection_json(filepath_base, trigger_result, None, detection, True)
+                        elif detection >= DETECTION_MIN_THRESHOLD:
+                            # Below threshold but above minimum - save for analysis
+                            os.makedirs(DETECTIONS_BELOW_THRESHOLD_DIR, exist_ok=True)
+                            filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
+                            save_detection_json(filepath_base, trigger_result, None, detection, False)
+                            with open(log_file_path, "a") as log_file:
+                                log_file.write(f"Saved below-threshold detection (score: {detection:.2f})\n")
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection result: {e}\n")

@@ -17,7 +17,7 @@ import json
 # Importa il modulo power trigger
 from power_trigger import PowerTrigger, compute_tdoa_direct, get_nearest_channel
 
-from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, LOG_FILE_PATH, DETECTIONS_DIR, TDOA_WIN_SEC
+from config import RING_HOST, RING_PORT, WINDOW_SEC, HALF_WINDOW, SERVER_PORT_BASE, DETECTION_THRESHOLD, LOG_FILE_PATH, DETECTIONS_DIR, TDOA_WIN_SEC, WINDOW_SAVE_MODE, WINDOW_SAVES_DIR
 
 # Funzione per ottenere il nome del file di log
 def get_log_file_path():
@@ -79,6 +79,66 @@ def save_detection_json(filepath_base: str, trigger_result: dict, tdoa_result: d
     except Exception as e:
         with open(log_file_path, "a") as log_file:
             log_file.write(f"Error saving JSON: {e}\n")
+
+
+def save_analysis_window(left_block, right_block, sample_rate, window_counter, trigger_result=None):
+    """
+    Salva una finestra di analisi come file WAV con metadati.
+    
+    Args:
+        left_block: Array numpy del canale sinistro
+        right_block: Array numpy del canale destro
+        sample_rate: Sample rate in Hz
+        window_counter: Contatore progressivo della finestra
+        trigger_result: Risultato del trigger (opzionale, per metadata)
+    """
+    try:
+        os.makedirs(WINDOW_SAVES_DIR, exist_ok=True)
+        
+        # Timestamp + counter per nome file univoco
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        filename_base = f"window_{timestamp}_{window_counter:06d}"
+        filepath_base = os.path.join(WINDOW_SAVES_DIR, filename_base)
+        
+        # Converti float32 a int16 se necessario
+        if left_block.dtype == np.float32:
+            left_int16 = (left_block * 32767).astype(np.int16)
+        else:
+            left_int16 = left_block.astype(np.int16)
+            
+        if right_block.dtype == np.float32:
+            right_int16 = (right_block * 32767).astype(np.int16)
+        else:
+            right_int16 = right_block.astype(np.int16)
+        
+        # Crea stereo array
+        stereo_array = np.stack((left_int16, right_int16), axis=-1)
+        
+        # Salva WAV
+        wavfile.write(filepath_base + ".wav", sample_rate, stereo_array)
+        
+        # Salva metadata JSON
+        metadata = {
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "window_counter": window_counter,
+            "duration_sec": len(left_block) / sample_rate,
+            "sample_rate": sample_rate,
+            "samples": len(left_block)
+        }
+        
+        if trigger_result:
+            metadata["trigger"] = {
+                "left": trigger_result.get('left_triggered', False),
+                "right": trigger_result.get('right_triggered', False),
+                "action": trigger_result.get('action', 'none')
+            }
+        
+        with open(filepath_base + ".json", 'w') as f:
+            json.dump(metadata, f, indent=2)
+            
+    except Exception as e:
+        with open(log_file_path, "a") as log_file:
+            log_file.write(f"Error saving analysis window: {e}\n")
 
 
 def get_sample():
@@ -178,8 +238,12 @@ async def main_loop_with_trigger():
         prev_left_tail = np.array([], dtype=np.float32)
         prev_right_tail = np.array([], dtype=np.float32)
         
+        # Contatore per le finestre salvate
+        window_counter = 0
+        
         with open(log_file_path, "a") as log_file:
             log_file.write("=== Starting detector with power trigger ===\n")
+            log_file.write(f"Window save mode: {WINDOW_SAVE_MODE}\n")
         
         while True:
             br, left_channel, right_channel = get_sample()
@@ -202,6 +266,28 @@ async def main_loop_with_trigger():
                 log_file.write(f"\n--- Trigger Result ---\n")
                 log_file.write(f"Action: {trigger_result['action']}\n")
                 log_file.write(f"Channel to analyze: {trigger_result['channel_to_analyze']}\n")
+            
+            # Window saving logic based on configured mode
+            should_save_window = False
+            
+            if WINDOW_SAVE_MODE == "all":
+                # Save all analyzed windows
+                should_save_window = True
+            elif WINDOW_SAVE_MODE == "trigger" and trigger_result['action'] != 'none':
+                # Save only windows that activate the trigger
+                should_save_window = True
+            
+            if should_save_window:
+                window_counter += 1
+                save_analysis_window(
+                    detect_left_block, 
+                    detect_right_block, 
+                    br, 
+                    window_counter, 
+                    trigger_result
+                )
+                with open(log_file_path, "a") as log_file:
+                    log_file.write(f"Saved analysis window #{window_counter} (mode: {WINDOW_SAVE_MODE})\n")
             
             # Determina quale canale analizzare
             if trigger_result['action'] == 'none':

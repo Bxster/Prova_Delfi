@@ -64,3 +64,8 @@ LOG_DATE_FMT = "%Y%m%d"
 CONTINUOUS_RECORDING_ENABLED = True  # Set to False to disable continuous recording
 MAX_RECORDING_DURATION_SEC = 900  # Max 15 min (900 sec) to avoid huge files
 CONTINUOUS_RECORDING_DIR = f"{LOGS_DIR}/continuous_recordings"
+
+# --- Window Saving (Debug/Analysis) ---
+# Modes: "none" (default), "all" (save all analyzed windows), "trigger" (save only triggered windows)
+WINDOW_SAVE_MODE = "none"  # Options: "none", "all", "trigger"
+WINDOW_SAVES_DIR = f"{LOGS_DIR}/window_saves"  # Directory for saved analysis windows

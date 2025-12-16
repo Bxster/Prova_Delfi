@@ -302,7 +302,7 @@ def compute_tdoa_direct(left_channel, right_channel, sample_rate):
             'success': True,
             'direction': direction,
             'angle': round(angle_deg, 2),
-            'tdoa_sec': round(tdoa, 8),
+            'tdoa_sec': round(tdoa, 5),
             'error': ''
         }
         

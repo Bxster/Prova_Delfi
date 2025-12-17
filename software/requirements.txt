@@ -1,6 +1,19 @@
-numpy
-scipy
-pillow
-pyserial
-tflite-runtime
-flask
+# Python Dependencies for Prova_Delfi
+# Raspberry Pi compatible versions
+
+# Core numerical libraries
+numpy==1.26.4  # Downgraded for compatibility with Raspberry Pi and tflite-runtime
+scipy>=1.11.0
+pillow>=10.0.0
+
+# Communication
+pyserial>=3.5
+
+# Web interface
+flask>=3.0.0
+
+# TFLite Runtime (requires manual installation on Raspberry Pi)
+# NOTE: tflite-runtime 2.18.0 must be installed manually via community build
+# DO NOT install via pip on Raspberry Pi - use the provided .whl file
+# See: https://github.com/PINTO0309/TensorflowLite-bin
+# tflite-runtime==2.18.0  # Commented out - install manually

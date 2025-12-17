@@ -294,6 +294,7 @@ async def main_loop_with_trigger():
                 # Nessun trigger attivato, salta la detection
                 with open(log_file_path, "a") as log_file:
                     log_file.write("No triggers activated, skipping detection\n")
+                    log_file.write("Detection: N/A\n")  # Completa il log per consistenza
                 # IMPORTANTE: Aspetta prima di continuare, altrimenti il loop gira troppo veloce
                 # e riceve sempre gli stessi dati dal ring buffer
                 await asyncio.sleep(HALF_WINDOW)  # Aspetta l'hop time prima di prendere il prossimo blocco
@@ -359,6 +360,7 @@ async def main_loop_with_trigger():
                 # Solo il trigger sinistro attivato
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Left trigger only, detecting on left channel\n")
+                    log_file.write("TDOA Result: N/A (single channel trigger)\n")
                 
                 resp = await perform_detection_block(detect_left_block, br)
                 if resp is not None:
@@ -383,11 +385,15 @@ async def main_loop_with_trigger():
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection result: {e}\n")
+                else:
+                    with open(log_file_path, "a") as log_file:
+                        log_file.write("Detection: ERROR (no response from server)\n")
             
             elif trigger_result['action'] == 'right_only':
                 # Solo il trigger destro attivato
                 with open(log_file_path, "a") as log_file:
                     log_file.write("Right trigger only, detecting on right channel\n")
+                    log_file.write("TDOA Result: N/A (single channel trigger)\n")
                 
                 resp = await perform_detection_block(detect_right_block, br)
                 if resp is not None:
@@ -412,6 +418,9 @@ async def main_loop_with_trigger():
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection result: {e}\n")
+                else:
+                    with open(log_file_path, "a") as log_file:
+                        log_file.write("Detection: ERROR (no response from server)\n")
             # Il loop continua immediatamente per processare il prossimo blocco dal ring buffer
     
     except Exception as e:

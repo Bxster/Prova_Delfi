@@ -32,6 +32,14 @@ HIGH_PASS_CUTOFF_HZ = 1000
 INVERT_PHASE = False  # True se i microfoni hanno fase invertita
 #TDOA_CENTER_THRESHOLD_SEC = 0.000061  # Soglia per considerare il suono "al centro" (~3 gradi in aria)
 TDOA_CENTER_THRESHOLD_SEC = 0.000014  # (~3 gradi in acqua)
+
+# TDOA Method Selection
+TDOA_METHOD = "first_arrival"  # Options: "max_peak" or "first_arrival"
+TDOA_FIRST_ARRIVAL_THRESHOLD = 0.7  # Threshold ratio (0.0-1.0) for first-arrival detection
+                                     # Higher = more conservative (may miss weak signals)
+                                     # Lower = more aggressive (may pick up noise)
+                                     # Recommended: 0.6-0.8 for reverberant environments
+
 UART_PORT = "/dev/serial0"
 UART_BAUD = 9600
 ENABLE_UART = False  # altrimenti False

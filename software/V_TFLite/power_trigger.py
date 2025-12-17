@@ -14,7 +14,8 @@ from scipy.signal import butter, filtfilt
 from config import (
     PROMINENCE_BAND_MIN_HZ, PROMINENCE_BAND_MAX_HZ, PROMINENCE_THRESHOLD_DB,
     MIN_FREQ, MAX_FREQ, SPEED_OF_SOUND, MICROPHONE_DISTANCE,
-    HIGH_PASS_CUTOFF_HZ, INVERT_PHASE, TDOA_CENTER_THRESHOLD_SEC
+    HIGH_PASS_CUTOFF_HZ, INVERT_PHASE, TDOA_CENTER_THRESHOLD_SEC,
+    TDOA_METHOD, TDOA_FIRST_ARRIVAL_THRESHOLD
 )
 
 class PowerTrigger:
@@ -197,6 +198,9 @@ def _cross_spectrum_gcc_phat(left_channel, right_channel, sample_rate, max_tdoa_
     """
     Calcola TDOA usando GCC-PHAT (Generalized Cross-Correlation with Phase Transform).
     Applica windowing per ridurre spectral leakage.
+    Supporta due metodi di ricerca del delay:
+    - "max_peak": Trova il picco massimo assoluto (metodo standard)
+    - "first_arrival": Trova il primo picco significativo (robusto alle riflessioni)
     
     Args:
         left_channel: Segnale canale sinistro (già filtrato)
@@ -238,8 +242,50 @@ def _cross_spectrum_gcc_phat(left_channel, right_channel, sample_rate, max_tdoa_
     center = len(cc) // 2
     cc_limited = cc[center - max_tdoa_samples : center + max_tdoa_samples]
     
-    # Trova il picco della correlazione
-    delay = np.argmax(cc_limited) - max_tdoa_samples
+    # Seleziona metodo di ricerca del delay in base a configurazione
+    if TDOA_METHOD == "first_arrival":
+        # FIRST-ARRIVAL DETECTION: cerca il primo picco significativo
+        # Robusto alle riflessioni in ambienti riverberanti
+        
+        max_peak = np.max(np.abs(cc_limited))
+        threshold = TDOA_FIRST_ARRIVAL_THRESHOLD * max_peak
+        
+        # Cerca primo picco a sinistra del centro (sorgente a destra)
+        delay_right = None
+        peak_right = -np.inf
+        for i in range(max_tdoa_samples - 1, -1, -1):  # Dalla fine verso centro
+            if cc_limited[i] > threshold:
+                delay_right = max_tdoa_samples - i
+                peak_right = cc_limited[i]
+                break
+        
+        # Cerca primo picco a destra del centro (sorgente a sinistra)
+        delay_left = None
+        peak_left = -np.inf
+        for i in range(max_tdoa_samples, len(cc_limited)):  # Dal centro verso fine
+            if cc_limited[i] > threshold:
+                delay_left = i - max_tdoa_samples
+                peak_left = cc_limited[i]
+                break
+        
+        # Scegli il delay col picco più forte tra i due first-arrival
+        if delay_left is not None and delay_right is not None:
+            if peak_left > peak_right:
+                delay = delay_left
+            else:
+                delay = -delay_right
+        elif delay_left is not None:
+            delay = delay_left
+        elif delay_right is not None:
+            delay = -delay_right
+        else:
+            # Fallback: se non trova nessun picco sopra soglia, usa max_peak
+            delay = np.argmax(cc_limited) - max_tdoa_samples
+    
+    else:  # TDOA_METHOD == "max_peak" (default/standard)
+        # MAX PEAK DETECTION: trova il picco massimo assoluto
+        # Metodo standard, può essere influenzato da riflessioni
+        delay = np.argmax(cc_limited) - max_tdoa_samples
     
     return delay / sample_rate
 

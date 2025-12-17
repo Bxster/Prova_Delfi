@@ -2,16 +2,17 @@
 # Raspberry Pi compatible versions
 
 # Core numerical libraries
-numpy==1.26.4  # Downgraded for compatibility with Raspberry Pi and tflite-runtime
 scipy
 pillow
-opencv-python==4.8.1.78  # Pinned for numpy 1.26.4 compatibility
+opencv-python-headless==4.8.1.78  # Headless version for Raspberry Pi (no GUI dependencies)
 
 # Communication
 pyserial
 
 # Web interface
 flask
+
+numpy==1.26.4  # Downgraded for compatibility with Raspberry Pi and tflite-runtime
 
 tflite-runtime-nightly
 # TFLite Runtime (requires manual installation on Raspberry Pi)

@@ -294,7 +294,9 @@ async def main_loop_with_trigger():
                 # Nessun trigger attivato, salta la detection
                 with open(log_file_path, "a") as log_file:
                     log_file.write("No triggers activated, skipping detection\n")
-                await asyncio.sleep(1)
+                # IMPORTANTE: Aspetta prima di continuare, altrimenti il loop gira troppo veloce
+                # e riceve sempre gli stessi dati dal ring buffer
+                await asyncio.sleep(HALF_WINDOW)  # Aspetta l'hop time prima di prendere il prossimo blocco
                 continue
             
             if trigger_result['action'] == 'tdoa':
@@ -410,7 +412,7 @@ async def main_loop_with_trigger():
                     except Exception as e:
                         with open(log_file_path, "a") as log_file:
                             log_file.write(f"Error parsing detection result: {e}\n")
-            await asyncio.sleep(1)
+            # Il loop continua immediatamente per processare il prossimo blocco dal ring buffer
     
     except Exception as e:
         with open(log_file_path, "a") as log_file:

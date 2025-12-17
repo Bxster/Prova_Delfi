@@ -259,11 +259,20 @@ async def main_loop_with_trigger():
             detect_right_block = eff_right[-w:] if eff_right.size >= w else eff_right
             prev_right_tail = eff_right[-h:] if eff_right.size >= h else eff_right
             
+            
+            # Genera timestamp per questa iterazione (usato per log e file)
+            # Questo garantisce che il timestamp nel log corrisponda al timestamp nei file salvati
+            iteration_timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+            
+            # Cattura il tempo di inizio per calcolare la latenza del processing
+            start_time = time.time()
+            
             # Esegui il power trigger sulla stessa finestra usata per la detection (0.8s rolling)
             trigger_result = trigger.process_stereo_buffer(detect_left_block, detect_right_block)
             
             with open(log_file_path, "a") as log_file:
                 log_file.write(f"\n--- Trigger Result ---\n")
+                log_file.write(f"Timestamp: {iteration_timestamp}\n")
                 log_file.write(f"Action: {trigger_result['action']}\n")
                 log_file.write(f"Channel to analyze: {trigger_result['channel_to_analyze']}\n")
             
@@ -292,9 +301,12 @@ async def main_loop_with_trigger():
             # Determina quale canale analizzare
             if trigger_result['action'] == 'none':
                 # Nessun trigger attivato, salta la detection
+                end_time = time.time()
+                latency_ms = (end_time - start_time) * 1000
                 with open(log_file_path, "a") as log_file:
                     log_file.write("No triggers activated, skipping detection\n")
-                    log_file.write("Detection: N/A\n")  # Completa il log per consistenza
+                    log_file.write("Detection: N/A\n") # Completa il log per consistenza
+                    log_file.write(f"Processing latency: {latency_ms:.0f} ms\n")
                 # IMPORTANTE: Aspetta prima di continuare, altrimenti il loop gira troppo veloce
                 # e riceve sempre gli stessi dati dal ring buffer
                 await asyncio.sleep(HALF_WINDOW)  # Aspetta l'hop time prima di prendere il prossimo blocco
@@ -338,13 +350,13 @@ async def main_loop_with_trigger():
                             if detection >= DETECTION_THRESHOLD:
                                 # Above threshold - positive detection
                                 os.makedirs(DETECTIONS_DIR, exist_ok=True)
-                                filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                                filepath_base = os.path.join(DETECTIONS_DIR, iteration_timestamp)
                                 wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                                 save_detection_json(filepath_base, trigger_result, tdoa_result, detection, True)
                             elif detection >= DETECTION_MIN_THRESHOLD:
                                 # Below threshold but above minimum - save for analysis
                                 os.makedirs(DETECTIONS_BELOW_THRESHOLD_DIR, exist_ok=True)
-                                filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                                filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, iteration_timestamp)
                                 wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                                 save_detection_json(filepath_base, trigger_result, tdoa_result, detection, False)
                                 with open(log_file_path, "a") as log_file:
@@ -371,13 +383,13 @@ async def main_loop_with_trigger():
                         if detection >= DETECTION_THRESHOLD:
                             # Above threshold - positive detection
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
-                            filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            filepath_base = os.path.join(DETECTIONS_DIR, iteration_timestamp)
                             wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                             save_detection_json(filepath_base, trigger_result, None, detection, True)
                         elif detection >= DETECTION_MIN_THRESHOLD:
                             # Below threshold but above minimum - save for analysis
                             os.makedirs(DETECTIONS_BELOW_THRESHOLD_DIR, exist_ok=True)
-                            filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, iteration_timestamp)
                             wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                             save_detection_json(filepath_base, trigger_result, None, detection, False)
                             with open(log_file_path, "a") as log_file:
@@ -404,13 +416,13 @@ async def main_loop_with_trigger():
                         if detection >= DETECTION_THRESHOLD:
                             # Above threshold - positive detection
                             os.makedirs(DETECTIONS_DIR, exist_ok=True)
-                            filepath_base = os.path.join(DETECTIONS_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            filepath_base = os.path.join(DETECTIONS_DIR, iteration_timestamp)
                             wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                             save_detection_json(filepath_base, trigger_result, None, detection, True)
                         elif detection >= DETECTION_MIN_THRESHOLD:
                             # Below threshold but above minimum - save for analysis
                             os.makedirs(DETECTIONS_BELOW_THRESHOLD_DIR, exist_ok=True)
-                            filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, time.strftime("%Y-%m-%d_%H-%M-%S"))
+                            filepath_base = os.path.join(DETECTIONS_BELOW_THRESHOLD_DIR, iteration_timestamp)
                             wavfile.write(filepath_base + ".wav", br, np.stack((left_channel, right_channel), axis=-1))
                             save_detection_json(filepath_base, trigger_result, None, detection, False)
                             with open(log_file_path, "a") as log_file:
@@ -421,6 +433,12 @@ async def main_loop_with_trigger():
                 else:
                     with open(log_file_path, "a") as log_file:
                         log_file.write("Detection: ERROR (no response from server)\n")
+            
+            # Calcola e logga la latenza di processing (per tdoa, left_only, right_only)
+            end_time = time.time()
+            latency_ms = (end_time - start_time) * 1000
+            with open(log_file_path, "a") as log_file:
+                log_file.write(f"Processing latency: {latency_ms:.0f} ms\n")
             
             # IMPORTANTE: Aspetta l'hop time prima di processare la prossima finestra
             # Questo garantisce che processiamo esattamente ogni 0.4s (hop time)

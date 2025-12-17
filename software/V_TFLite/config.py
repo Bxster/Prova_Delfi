@@ -30,8 +30,8 @@ SPEED_OF_SOUND = 1460  # Velocità del suono in aria 330, in acqua 1460 (m/s)
 MICROPHONE_DISTANCE = 0.33  # Distanza tra i microfoni (metri)
 HIGH_PASS_CUTOFF_HZ = 1000
 INVERT_PHASE = False  # True se i microfoni hanno fase invertita
-TDOA_CENTER_THRESHOLD_SEC = 0.000061  # Soglia per considerare il suono "al centro" (~3 gradi in aria)
-#TDOA_CENTER_THRESHOLD_SEC = 0.000014  # (~3 gradi in acqua)
+#TDOA_CENTER_THRESHOLD_SEC = 0.000061  # Soglia per considerare il suono "al centro" (~3 gradi in aria)
+TDOA_CENTER_THRESHOLD_SEC = 0.000014  # (~3 gradi in acqua)
 UART_PORT = "/dev/serial0"
 UART_BAUD = 9600
 ENABLE_UART = False  # altrimenti False
@@ -70,5 +70,5 @@ CONTINUOUS_RECORDING_DIR = f"{LOGS_DIR}/continuous_recordings"
 
 # --- Window Saving (Debug/Analysis) ---
 # Modes: "none" (default), "all" (save all analyzed windows), "trigger" (save only triggered windows)
-WINDOW_SAVE_MODE = "none"  # Options: "none", "all", "trigger"
+WINDOW_SAVE_MODE = "all"  # Options: "none", "all", "trigger"
 WINDOW_SAVES_DIR = f"{LOGS_DIR}/window_saves"  # Directory for saved analysis windows

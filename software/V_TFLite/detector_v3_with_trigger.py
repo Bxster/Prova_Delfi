@@ -421,7 +421,12 @@ async def main_loop_with_trigger():
                 else:
                     with open(log_file_path, "a") as log_file:
                         log_file.write("Detection: ERROR (no response from server)\n")
-            # Il loop continua immediatamente per processare il prossimo blocco dal ring buffer
+            
+            # IMPORTANTE: Aspetta l'hop time prima di processare la prossima finestra
+            # Questo garantisce che processiamo esattamente ogni 0.4s (hop time)
+            # senza questo sleep, il loop girerebbe troppo veloce e processerebbe
+            # gli stessi dati più volte o salterebbe finestre
+            await asyncio.sleep(HALF_WINDOW)
     
     except Exception as e:
         with open(log_file_path, "a") as log_file:

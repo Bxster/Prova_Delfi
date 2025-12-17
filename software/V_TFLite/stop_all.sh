@@ -5,9 +5,9 @@ echo "Stopping DELFI processes..."
 
 # Stop continuous recorder first (graceful shutdown to save WAV file)
 if pgrep -f "V_TFLite/continuous_recorder.py" > /dev/null 2>&1; then
-  echo "Stopping Continuous Recorder (saving recording)..."
+  echo "Stopping Continuous Recorder (finalizing WAV file)..."
   pkill -TERM -f "V_TFLite/continuous_recorder.py"
-  sleep 3  # Give it time to save the WAV file
+  sleep 5  # Give it time to close the WAV file (just needs to update header)
 fi
 
 kill_pattern() {

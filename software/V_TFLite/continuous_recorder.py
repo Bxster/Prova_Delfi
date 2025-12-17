@@ -1,7 +1,7 @@
 #!/home/delfi/Prova_Delfi/.venv/bin/python3
 """
-Continuous Audio Recorder
-Registra continuamente l'audio dal jack-ring-socket-server e salva in un file WAV quando viene fermato.
+Continuous Audio Recorder with Streaming WAV Writer
+Registra continuamente l'audio dal jack-ring-socket-server scrivendo direttamente su disco.
 """
 
 import socket
@@ -17,25 +17,21 @@ from pathlib import Path
 # Import configurazioni
 from config import (
     RING_HOST, RING_PORT, SAMPLE_RATE_DEFAULT,
-    LOGS_DIR, TIMESTAMP_FMT, CONTINUOUS_RECORDING_ROTATION_MINUTES
+    LOGS_DIR, TIMESTAMP_FMT
 )
 
 class ContinuousRecorder:
-    def __init__(self, rotation_minutes=5):
+    def __init__(self):
         """
-        Inizializza il registratore continuo con salvataggio rotazionale.
-        
-        Args:
-            rotation_minutes: Minuti dopo i quali salvare e iniziare un nuovo file (default: 5)
+        Inizializza il registratore continuo con scrittura streaming su disco.
         """
         self.recording = True
-        self.audio_buffer = []
         self.sample_rate = SAMPLE_RATE_DEFAULT
         self.channels = 2  # Stereo
-        self.rotation_minutes = rotation_minutes
-        self.rotation_seconds = rotation_minutes * 60
-        self.last_save_time = datetime.now()
-        self.file_counter = 0
+        self.wav_file = None
+        self.filepath = None
+        self.blocks_written = 0
+        self.start_time = datetime.now()
         
         # Percorso di salvataggio
         self.logs_dir = Path(LOGS_DIR)
@@ -46,88 +42,100 @@ class ContinuousRecorder:
         signal.signal(signal.SIGINT, self._signal_handler)
         
         print("=" * 60)
-        print("🎙️  Continuous Audio Recorder (Rolling Mode)")
+        print("🎙️  Continuous Audio Recorder (Streaming Mode)")
         print("=" * 60)
         print(f"📁 Logs directory: {self.logs_dir}")
         print(f"🎵 Sample rate: {self.sample_rate} Hz")
         print(f"🔊 Channels: {self.channels} (stereo)")
-        print(f"♻️  Auto-save: every {rotation_minutes} minutes")
-        print("🔴 Recording started...")
+        print(f"💾 Mode: Direct disk write (no memory buffer)")
         print("=" * 60)
     
     def _signal_handler(self, signum, frame):
-        """Gestisce i segnali di terminazione per salvare il file prima di uscire."""
-        print(f"\n📥 Received signal {signum}, stopping recorder...")
+        """Gestisce i segnali di terminazione per chiudere il file WAV correttamente."""
+        print(f"\n📥 Received signal {signum}, finalizing recording...")
         self.recording = False
     
-    def _save_recording(self, is_rotation=False):
+    def _open_wav_file(self):
         """
-        Salva la registrazione in un file WAV.
-        
-        Args:
-            is_rotation: True se è un salvataggio automatico rotazionale, False se finale
+        Apre un nuovo file WAV per la registrazione streaming.
         """
-        if not self.audio_buffer:
-            print("⚠️  No audio data to save.")
-            return
-        
-        # Crea il nome del file con timestamp
-        timestamp = datetime.now().strftime(TIMESTAMP_FMT)
-        self.file_counter += 1
-        
-        if is_rotation:
-            filename = f"continuous_recording_{timestamp}_part{self.file_counter:03d}.wav"
-        else:
-            filename = f"continuous_recording_{timestamp}_final.wav"
-        
-        filepath = self.logs_dir / filename
+        # Crea il nome del file con timestamp di inizio
+        timestamp = self.start_time.strftime(TIMESTAMP_FMT)
+        filename = f"continuous_recording_{timestamp}.wav"
+        self.filepath = self.logs_dir / filename
         
         try:
-            # Converti il buffer in un array numpy
-            audio_data = np.concatenate(self.audio_buffer, axis=0)
+            # Apri il file WAV in modalità write
+            self.wav_file = wave.open(str(self.filepath), 'wb')
+            self.wav_file.setnchannels(self.channels)
+            self.wav_file.setsampwidth(2)  # 16-bit = 2 bytes
+            self.wav_file.setframerate(self.sample_rate)
             
-            # Assicurati che sia in formato int16
-            if audio_data.dtype != np.int16:
-                audio_data = audio_data.astype(np.int16)
-            
-            # Salva come file WAV
-            with wave.open(str(filepath), 'wb') as wf:
-                wf.setnchannels(self.channels)
-                wf.setsampwidth(2)  # 16-bit = 2 bytes
-                wf.setframerate(self.sample_rate)
-                wf.writeframes(audio_data.tobytes())
-            
-            # Calcola statistiche
-            duration_sec = len(audio_data) / (self.sample_rate * self.channels)
-            size_mb = filepath.stat().st_size / (1024 * 1024)
-            
-            save_type = "🔄 ROTATIONAL SAVE" if is_rotation else "✅ FINAL SAVE"
-            print("\n" + "=" * 60)
-            print(save_type)
+            print(f"✅ Opened WAV file: {filename}")
+            print(f"🔴 Recording started...")
             print("=" * 60)
-            print(f"📄 File: {filename}")
-            print(f"📁 Path: {filepath}")
-            print(f"⏱️  Duration: {duration_sec:.2f} seconds")
-            print(f"💾 Size: {size_mb:.2f} MB")
-            print(f"🔊 Sample rate: {self.sample_rate} Hz")
-            print(f"🎵 Channels: {self.channels}")
-            print("=" * 60)
-            
-            # Se è una rotazione, resetta il buffer e il timer
-            if is_rotation:
-                self.audio_buffer = []
-                self.last_save_time = datetime.now()
-                print("▶️  Continuing recording...\n")
             
         except Exception as e:
-            print(f"❌ Error saving recording: {e}")
+            print(f"❌ Error opening WAV file: {e}")
+            raise
+    
+    def _close_wav_file(self):
+        """
+        Chiude il file WAV e stampa le statistiche.
+        """
+        if self.wav_file is None:
+            return
+        
+        try:
+            # Chiudi il file (questo aggiorna automaticamente l'header con la dimensione)
+            self.wav_file.close()
+            
+            # Calcola statistiche
+            if self.filepath.exists():
+                size_mb = self.filepath.stat().st_size / (1024 * 1024)
+                duration_sec = (datetime.now() - self.start_time).total_seconds()
+                
+                print("\n" + "=" * 60)
+                print("✅ RECORDING COMPLETED")
+                print("=" * 60)
+                print(f"📄 File: {self.filepath.name}")
+                print(f"📁 Path: {self.filepath}")
+                print(f"⏱️  Duration: {duration_sec:.2f} seconds ({duration_sec/60:.1f} minutes)")
+                print(f"💾 Size: {size_mb:.2f} MB")
+                print(f"📦 Blocks written: {self.blocks_written}")
+                print(f"🔊 Sample rate: {self.sample_rate} Hz")
+                print(f"🎵 Channels: {self.channels}")
+                print("=" * 60)
+            
+        except Exception as e:
+            print(f"❌ Error closing WAV file: {e}")
             import traceback
             traceback.print_exc()
     
-    def _should_rotate(self):
-        """Controlla se è il momento di salvare e ruotare."""
-        elapsed = (datetime.now() - self.last_save_time).total_seconds()
-        return elapsed >= self.rotation_seconds
+    def _write_audio_block(self, stereo_data):
+        """
+        Scrive un blocco audio direttamente nel file WAV.
+        
+        Args:
+            stereo_data: numpy array (N, 2) con dati float32
+        """
+        # Convert float32 to int16 for WAV storage
+        # Assuming float32 is in range [-1, 1]
+        stereo_int16 = (stereo_data * 32767).astype(np.int16)
+        
+        # Flatten to interleaved format [L, R, L, R, ...]
+        interleaved = stereo_int16.flatten()
+        
+        # Scrivi nel file WAV
+        self.wav_file.writeframes(interleaved.tobytes())
+        
+        # Ogni 10 blocchi, forza la scrittura fisica su disco
+        self.blocks_written += 1
+        if self.blocks_written % 10 == 0:
+            # Flush del buffer Python
+            self.wav_file._file.flush()
+            # Forza la scrittura fisica su disco (importante per spegnimenti improvvisi)
+            os.fsync(self.wav_file._file.fileno())
     
     def _get_audio_block(self):
         """
@@ -179,61 +187,51 @@ class ContinuousRecorder:
             try:
                 sr, _ = self._get_audio_block()
                 self.sample_rate = sr
-                print(f"✅ Connected! Sample rate: {sr} Hz")
+                print(f"✅ Connected! Sample rate: {sr} Hz\n")
             except Exception as e:
                 raise ConnectionRefusedError(f"Cannot connect: {e}")
+            
+            # Apri il file WAV
+            self._open_wav_file()
             
             # Loop di registrazione
             while self.recording:
                 try:
                     sr, stereo_data = self._get_audio_block()
                     
-                    # Convert float32 to int16 for WAV storage
-                    # Assuming float32 is in range [-1, 1]
-                    stereo_int16 = (stereo_data * 32767).astype(np.int16)
+                    # Scrivi il blocco direttamente su disco
+                    self._write_audio_block(stereo_data)
                     
-                    # Flatten to interleaved format [L, R, L, R, ...]
-                    interleaved = stereo_int16.flatten()
-                    
-                    self.audio_buffer.append(interleaved)
-                    
-                    # Controlla se è il momento di rotare (salvare e continuare)
-                    if self._should_rotate():
-                        print(f"\n⏰ Rotation time reached ({self.rotation_minutes} minutes)")
-                        self._save_recording(is_rotation=True)
-                    
-                    # Log periodico (ogni ~5 blocchi)
-                    if len(self.audio_buffer) % 5 == 0:
-                        total_samples = sum(len(c) for c in self.audio_buffer)
-                        duration = total_samples / (self.sample_rate * self.channels)
-                        elapsed = (datetime.now() - self.last_save_time).total_seconds()
-                        remaining = self.rotation_seconds - elapsed if elapsed < self.rotation_seconds else 0
-                        print(f"🎙️  Recording... {duration:.1f}s ({len(self.audio_buffer)} blocks) | Next save in: {remaining:.0f}s")
+                    # Log periodico (ogni 50 blocchi, circa ogni 5 secondi)
+                    if self.blocks_written % 50 == 0:
+                        elapsed = (datetime.now() - self.start_time).total_seconds()
+                        size_mb = self.filepath.stat().st_size / (1024 * 1024) if self.filepath.exists() else 0
+                        print(f"🎙️  Recording... {elapsed:.1f}s | {self.blocks_written} blocks | {size_mb:.1f} MB")
                 
                 except Exception as e:
                     if self.recording:
-                        print(f"⚠️  Error getting block: {e}")
+                        print(f"⚠️  Error getting/writing block: {e}")
                         # Continue trying
                         import time
                         time.sleep(0.5)
             
-            # Salva la registrazione finale
-            self._save_recording(is_rotation=False)
+            # Chiudi il file WAV (finalizza l'header)
+            self._close_wav_file()
             
         except ConnectionRefusedError:
             print("❌ Cannot connect to jack-ring-socket-server.")
-            print("   Make sure the server is running on {}:{}".format(RING_HOST, RING_PORT))
+            print(f"   Make sure the server is running on {RING_HOST}:{RING_PORT}")
             sys.exit(1)
         except Exception as e:
             print(f"❌ Error during recording: {e}")
             import traceback
             traceback.print_exc()
-            # Prova comunque a salvare quello che è stato registrato
-            self._save_recording(is_rotation=False)
+            # Prova comunque a chiudere il file
+            self._close_wav_file()
             sys.exit(1)
 
 def main():
-    recorder = ContinuousRecorder(rotation_minutes=CONTINUOUS_RECORDING_ROTATION_MINUTES)
+    recorder = ContinuousRecorder()
     recorder.start()
 
 if __name__ == "__main__":

@@ -65,8 +65,6 @@ LOG_DATE_FMT = "%Y%m%d"
 
 # --- Continuous Recording ---
 CONTINUOUS_RECORDING_ENABLED = True  # Set to False to disable continuous recording
-CONTINUOUS_RECORDING_ROTATION_MINUTES = 5  # Auto-save and rotate every N minutes (prevents data loss)
-MAX_RECORDING_DURATION_SEC = 300  # Max 5 min (300 sec) - DEPRECATED: now using rotation instead
 CONTINUOUS_RECORDING_DIR = f"{LOGS_DIR}/continuous_recordings"
 
 # --- Window Saving (Debug/Analysis) ---

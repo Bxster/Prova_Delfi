@@ -17,15 +17,25 @@ from pathlib import Path
 # Import configurazioni
 from config import (
     RING_HOST, RING_PORT, SAMPLE_RATE_DEFAULT,
-    LOGS_DIR, TIMESTAMP_FMT
+    LOGS_DIR, TIMESTAMP_FMT, CONTINUOUS_RECORDING_ROTATION_MINUTES
 )
 
 class ContinuousRecorder:
-    def __init__(self):
+    def __init__(self, rotation_minutes=5):
+        """
+        Inizializza il registratore continuo con salvataggio rotazionale.
+        
+        Args:
+            rotation_minutes: Minuti dopo i quali salvare e iniziare un nuovo file (default: 5)
+        """
         self.recording = True
         self.audio_buffer = []
         self.sample_rate = SAMPLE_RATE_DEFAULT
         self.channels = 2  # Stereo
+        self.rotation_minutes = rotation_minutes
+        self.rotation_seconds = rotation_minutes * 60
+        self.last_save_time = datetime.now()
+        self.file_counter = 0
         
         # Percorso di salvataggio
         self.logs_dir = Path(LOGS_DIR)
@@ -36,11 +46,12 @@ class ContinuousRecorder:
         signal.signal(signal.SIGINT, self._signal_handler)
         
         print("=" * 60)
-        print("🎙️  Continuous Audio Recorder")
+        print("🎙️  Continuous Audio Recorder (Rolling Mode)")
         print("=" * 60)
         print(f"📁 Logs directory: {self.logs_dir}")
         print(f"🎵 Sample rate: {self.sample_rate} Hz")
         print(f"🔊 Channels: {self.channels} (stereo)")
+        print(f"♻️  Auto-save: every {rotation_minutes} minutes")
         print("🔴 Recording started...")
         print("=" * 60)
     
@@ -49,15 +60,26 @@ class ContinuousRecorder:
         print(f"\n📥 Received signal {signum}, stopping recorder...")
         self.recording = False
     
-    def _save_recording(self):
-        """Salva la registrazione in un file WAV."""
+    def _save_recording(self, is_rotation=False):
+        """
+        Salva la registrazione in un file WAV.
+        
+        Args:
+            is_rotation: True se è un salvataggio automatico rotazionale, False se finale
+        """
         if not self.audio_buffer:
             print("⚠️  No audio data to save.")
             return
         
         # Crea il nome del file con timestamp
         timestamp = datetime.now().strftime(TIMESTAMP_FMT)
-        filename = f"continuous_recording_{timestamp}.wav"
+        self.file_counter += 1
+        
+        if is_rotation:
+            filename = f"continuous_recording_{timestamp}_part{self.file_counter:03d}.wav"
+        else:
+            filename = f"continuous_recording_{timestamp}_final.wav"
+        
         filepath = self.logs_dir / filename
         
         try:
@@ -79,8 +101,9 @@ class ContinuousRecorder:
             duration_sec = len(audio_data) / (self.sample_rate * self.channels)
             size_mb = filepath.stat().st_size / (1024 * 1024)
             
+            save_type = "🔄 ROTATIONAL SAVE" if is_rotation else "✅ FINAL SAVE"
             print("\n" + "=" * 60)
-            print("✅ Recording saved successfully!")
+            print(save_type)
             print("=" * 60)
             print(f"📄 File: {filename}")
             print(f"📁 Path: {filepath}")
@@ -90,10 +113,21 @@ class ContinuousRecorder:
             print(f"🎵 Channels: {self.channels}")
             print("=" * 60)
             
+            # Se è una rotazione, resetta il buffer e il timer
+            if is_rotation:
+                self.audio_buffer = []
+                self.last_save_time = datetime.now()
+                print("▶️  Continuing recording...\n")
+            
         except Exception as e:
             print(f"❌ Error saving recording: {e}")
             import traceback
             traceback.print_exc()
+    
+    def _should_rotate(self):
+        """Controlla se è il momento di salvare e ruotare."""
+        elapsed = (datetime.now() - self.last_save_time).total_seconds()
+        return elapsed >= self.rotation_seconds
     
     def _get_audio_block(self):
         """
@@ -163,11 +197,18 @@ class ContinuousRecorder:
                     
                     self.audio_buffer.append(interleaved)
                     
+                    # Controlla se è il momento di rotare (salvare e continuare)
+                    if self._should_rotate():
+                        print(f"\n⏰ Rotation time reached ({self.rotation_minutes} minutes)")
+                        self._save_recording(is_rotation=True)
+                    
                     # Log periodico (ogni ~5 blocchi)
                     if len(self.audio_buffer) % 5 == 0:
                         total_samples = sum(len(c) for c in self.audio_buffer)
                         duration = total_samples / (self.sample_rate * self.channels)
-                        print(f"🎙️  Recording... {duration:.1f}s ({len(self.audio_buffer)} blocks)")
+                        elapsed = (datetime.now() - self.last_save_time).total_seconds()
+                        remaining = self.rotation_seconds - elapsed if elapsed < self.rotation_seconds else 0
+                        print(f"🎙️  Recording... {duration:.1f}s ({len(self.audio_buffer)} blocks) | Next save in: {remaining:.0f}s")
                 
                 except Exception as e:
                     if self.recording:
@@ -176,8 +217,8 @@ class ContinuousRecorder:
                         import time
                         time.sleep(0.5)
             
-            # Salva la registrazione
-            self._save_recording()
+            # Salva la registrazione finale
+            self._save_recording(is_rotation=False)
             
         except ConnectionRefusedError:
             print("❌ Cannot connect to jack-ring-socket-server.")
@@ -188,11 +229,11 @@ class ContinuousRecorder:
             import traceback
             traceback.print_exc()
             # Prova comunque a salvare quello che è stato registrato
-            self._save_recording()
+            self._save_recording(is_rotation=False)
             sys.exit(1)
 
 def main():
-    recorder = ContinuousRecorder()
+    recorder = ContinuousRecorder(rotation_minutes=CONTINUOUS_RECORDING_ROTATION_MINUTES)
     recorder.start()
 
 if __name__ == "__main__":
